@@ -3,6 +3,7 @@ import MusicKit
 import SwiftUI
 
 @MainActor
+@available(iOS 16.0, *)
 final class MusicPlaybackCoordinator: ObservableObject {
     @Published private(set) var authorization: MusicAuthorization.Status = .notDetermined
     @Published private(set) var status = "Not initialized"
