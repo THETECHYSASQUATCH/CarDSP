@@ -3,6 +3,7 @@ import AVFoundation
 import SwiftUI
 
 @MainActor
+@available(iOS 13.0, *)
 public final class MicrophoneAnalyzer: ObservableObject {
     private let engine = AVAudioEngine()
 
