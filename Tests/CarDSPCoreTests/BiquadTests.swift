@@ -19,9 +19,11 @@ final class BiquadTests: XCTestCase {
         var filter = Biquad()
         filter.setHighPass(sampleRate: 48_000, frequency: 1000, q: 0.7071)
 
-        var left: Float = 1
-        var right: Float = 1
+        var left: Float = 0
+        var right: Float = 0
         for _ in 0..<200 {
+            left = 1
+            right = 1
             filter.process(left: &left, right: &right)
         }
 
