@@ -19,9 +19,9 @@ jobs:
     - name: Build
       run: swift build -v
       env:
-        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     
     - name: Run tests
       run: swift test -v
       env:
-        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
