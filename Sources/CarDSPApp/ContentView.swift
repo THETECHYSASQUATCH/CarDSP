@@ -9,26 +9,16 @@ final class DSPViewModel: ObservableObject {
         }
     }
 
-    @Published var selectedProfile: VehicleProfile? = .kiaSportageLX
     private let dsp: RealTimeDSPEngine
 
     init() {
         let saved = DSPConfiguration.load() ?? DSPConfiguration()
         self.configuration = saved
         self.dsp = RealTimeDSPEngine(configuration: saved)
-        self.selectedProfile = .kiaSportageLX
     }
 
     func applyPreset(_ preset: DSPConfiguration) {
         configuration = preset
-        syncEngine()
-    }
-
-    func applyProfile(_ profile: VehicleProfile) {
-        selectedProfile = profile
-        var updated = configuration
-        profile.apply(to: &updated)
-        configuration = updated
         syncEngine()
     }
 
@@ -38,21 +28,6 @@ final class DSPViewModel: ObservableObject {
         configuration = updated
         syncEngine()
     }
-
-    func resetFlat() {
-        configuration = DSPConfiguration()
-        syncEngine()
-    }
-
-    private func syncEngine() {
-        dsp.setConfiguration(configuration)
-    }
-}
-
-struct ContentView: View {
-    @StateObject private var music = MusicPlaybackCoordinator()
-    @StateObject private var viewModel = DSPViewModel()
-    @StateObject private var engine = AudioEngineController.shared
 
     var body: some View {
         TabView {
@@ -91,7 +66,7 @@ struct ContentView: View {
             EQScreen(viewModel: viewModel)
                 .tabItem { Label("EQ", systemImage: "slider.horizontal.3") }
 
-            SignalTestScreen()
+            MicrophoneAnalyzerView(analyzer: micAnalyzer)
                 .tabItem { Label("Analyzer", systemImage: "waveform") }
         }
         .task {
@@ -106,22 +81,6 @@ struct EQScreen: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Vehicle profile") {
-                    Picker("Profile", selection: Binding(
-                        get: { viewModel.selectedProfile ?? .kiaSportageLX },
-                        set: { viewModel.applyProfile($0) }
-                    )) {
-                        Text(VehicleProfile.kiaSportageLX.name).tag(VehicleProfile.kiaSportageLX)
-                    }
-                    .pickerStyle(.menu)
-
-                    if let profile = viewModel.selectedProfile {
-                        Text(profile.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
                 Section("31-Band EQ") {
                     ForEach(viewModel.configuration.eq.indices, id: \.self) { i in
                         VStack(alignment: .leading) {
@@ -145,18 +104,18 @@ struct EQScreen: View {
 
                 Section("Car DSP") {
                     HStack {
-                        Text("Sub LPF")
+                        Text("High-pass")
                         Spacer()
-                        Text("\(Int(viewModel.configuration.lowPassHz)) Hz")
+                        Text("\(Int(viewModel.configuration.highPassHz)) Hz")
                     }
                     Slider(value: Binding(
-                        get: { viewModel.configuration.lowPassHz },
+                        get: { viewModel.configuration.highPassHz },
                         set: { value in
                             viewModel.updateConfiguration { config in
-                                config.lowPassHz = value
+                                config.highPassHz = value
                             }
                         }
-                    ), in: 40...200)
+                    ), in: 10...100)
 
                     HStack {
                         Text("Subsonic")
@@ -173,6 +132,20 @@ struct EQScreen: View {
                     ), in: 10...40)
 
                     HStack {
+                        Text("Sub LPF")
+                        Spacer()
+                        Text("\(Int(viewModel.configuration.lowPassHz)) Hz")
+                    }
+                    Slider(value: Binding(
+                        get: { viewModel.configuration.lowPassHz },
+                        set: { value in
+                            viewModel.updateConfiguration { config in
+                                config.lowPassHz = value
+                            }
+                        }
+                    ), in: 40...200)
+
+                    HStack {
                         Text("Master gain")
                         Spacer()
                         Text(String(format: "%.1f dB", viewModel.configuration.masterGainDB))
@@ -185,17 +158,97 @@ struct EQScreen: View {
                             }
                         }
                     ), in: -12...12)
+
+                    HStack {
+                        Text("Time alignment")
+                        Spacer()
+                        Text(String(format: "%.1f ms", viewModel.configuration.timeAlignmentMs))
+                    }
+                    Slider(value: Binding(
+                        get: { viewModel.configuration.timeAlignmentMs },
+                        set: { value in
+                            viewModel.updateConfiguration { config in
+                                config.timeAlignmentMs = value
+                            }
+                        }
+                    ), in: 0...10)
+
+                    HStack {
+                        Text("Limiter threshold")
+                        Spacer()
+                        Text(String(format: "%.1f dB", viewModel.configuration.limiterThresholdDB))
+                    }
+                    Slider(value: Binding(
+                        get: { viewModel.configuration.limiterThresholdDB },
+                        set: { value in
+                            viewModel.updateConfiguration { config in
+                                config.limiterThresholdDB = value
+                            }
+                        }
+                    ), in: -12...0)
+
+                    HStack {
+                        Text("Compressor threshold")
+                        Spacer()
+                        Text(String(format: "%.1f dB", viewModel.configuration.compressorThresholdDB))
+                    }
+                    Slider(value: Binding(
+                        get: { viewModel.configuration.compressorThresholdDB },
+                        set: { value in
+                            viewModel.updateConfiguration { config in
+                                config.compressorThresholdDB = value
+                            }
+                        }
+                    ), in: -30...0)
+
+                    HStack {
+                        Text("Compressor ratio")
+                        Spacer()
+                        Text(String(format: "%.1f:1", viewModel.configuration.compressorRatio))
+                    }
+                    Slider(value: Binding(
+                        get: { viewModel.configuration.compressorRatio },
+                        set: { value in
+                            viewModel.updateConfiguration { config in
+                                config.compressorRatio = value
+                            }
+                        }
+                    ), in: 1...10)
+
+                    Toggle("Polarity invert", isOn: Binding(
+                        get: { viewModel.configuration.polarityInverted },
+                        set: { value in
+                            viewModel.updateConfiguration { config in
+                                config.polarityInverted = value
+                            }
+                        }
+                    ))
+
+                    Toggle("Limiter enabled", isOn: Binding(
+                        get: { viewModel.configuration.limiterEnabled },
+                        set: { value in
+                            viewModel.updateConfiguration { config in
+                                config.limiterEnabled = value
+                            }
+                        }
+                    ))
                 }
 
                 Section {
                     Button("Flat") {
                         viewModel.resetFlat()
                     }
-                    Button("Car Bass") {
-                        viewModel.applyPreset(.carBass())
+                    Button("Bass Boost") {
+                        viewModel.applyPreset(.bassBoost())
                     }
-                    Button("Sportage LX") {
-                        viewModel.applyProfile(.kiaSportageLX)
+                    Button("Treble Boost") {
+                        viewModel.applyPreset(.trebleBoost())
+                    }
+                    Button("Vocal") {
+                        viewModel.applyPreset(.vocal())
+                    }
+                    Button("Rock") {
+                        viewModel.applyPreset(.rock())
                     }
                 }
             }
@@ -210,20 +263,33 @@ struct EQScreen: View {
     }
 }
 
-struct SignalTestScreen: View {
-    private let sampledBands = RTAAnalyzer.measure(
-        from: Array(repeating: 0.5, count: 2048),
-        sampleRate: 48_000
-    )
+struct MicrophoneAnalyzerView: View {
+    @ObservedObject var analyzer: MicrophoneAnalyzer
 
     var body: some View {
         NavigationStack {
-            List(sampledBands, id: \ .frequency) { band in
-                HStack {
-                    Text(String(format: "%.0f Hz", band.frequency))
-                    Spacer()
-                    Text(String(format: "%.1f dB", band.levelDB))
-                        .monospacedDigit()
+            VStack {
+                Button(analyzer.isRunning ? "Stop Analysis" : "Start Analysis") {
+                    if analyzer.isRunning {
+                        analyzer.stop()
+                    } else {
+                        try? analyzer.start()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .padding()
+
+                Text(analyzer.status)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                List(analyzer.bands, id: \ .frequency) { band in
+                    HStack {
+                        Text(String(format: "%.0f Hz", band.frequency))
+                        Spacer()
+                        Text(String(format: "%.1f dB", band.levelDB))
+                            .monospacedDigit()
+                    }
                 }
             }
             .navigationTitle("Analyzer")

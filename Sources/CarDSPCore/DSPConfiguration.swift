@@ -40,13 +40,48 @@ public struct DSPConfiguration: Codable, Sendable {
         eq = frequencies.map { EQBand(frequency: $0) }
     }
 
-    public static func carBass() -> DSPConfiguration {
+    public static func flat() -> DSPConfiguration {
+        DSPConfiguration()
+    }
+
+    public static func bassBoost() -> DSPConfiguration {
         var c = DSPConfiguration()
-        let gains: [Float] = [4,4,4,4,3,3,3,2,1,1] + Array(repeating: Float(0), count: 21)
-        for i in c.eq.indices { c.eq[i].gainDB = gains[i] }
-        c.subsonicHz = 20
-        c.lowPassHz = 90
+        let gains: [Float] = [2,2,3,3,4,4,4,3,2,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        for i in c.eq.indices { c.eq[i].gainDB = gains.indices.contains(i) ? gains[i] : 0 }
+        c.subsonicHz = 18
+        c.lowPassHz = 100
+        c.masterGainDB = 1
+        c.limiterThresholdDB = -2
+        return c
+    }
+
+    public static func trebleBoost() -> DSPConfiguration {
+        var c = DSPConfiguration()
+        let gains: [Float] = Array(repeating: Float(0), count: 10) + [0,0,0,0,0,0,0,0,1,2,2,3,3,3,4,4,4,4,4,4,4,3,3,2] + Array(repeating: Float(0), count: 6)
+        for i in c.eq.indices { c.eq[i].gainDB = i < gains.count ? gains[i] : 0 }
+        c.highPassHz = 25
+        c.masterGainDB = 1.5
         c.limiterThresholdDB = -1
+        return c
+    }
+
+    public static func vocal() -> DSPConfiguration {
+        var c = DSPConfiguration()
+        let gains: [Float] = Array(repeating: Float(0), count: 14) + [2,3,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        for i in c.eq.indices { c.eq[i].gainDB = i < gains.count ? gains[i] : 0 }
+        c.highPassHz = 25
+        c.subsonicHz = 20
+        c.limiterThresholdDB = -1.5
+        return c
+    }
+
+    public static func rock() -> DSPConfiguration {
+        var c = DSPConfiguration()
+        let gains: [Float] = [2,2,3,3,3,2,2,1,1,0,0,0,0,0,0,0,1,2,2,2,3,3,4,4,3,2,1,0,0,0,0]
+        for i in c.eq.indices { c.eq[i].gainDB = i < gains.count ? gains[i] : 0 }
+        c.subsonicHz = 20
+        c.lowPassHz = 110
+        c.limiterThresholdDB = -1.5
         return c
     }
 

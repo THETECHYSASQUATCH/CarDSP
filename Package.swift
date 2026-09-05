@@ -14,7 +14,15 @@ let package = Package(
         .executableTarget(
             name: "CarDSPApp",
             dependencies: ["CarDSPCore"],
-            path: "Sources/CarDSPApp"
+            path: "Sources/CarDSPApp",
+            linkerSettings: [
+                .linkedFramework("SwiftUI"),
+                .linkedFramework("UIKit"),
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("AVFAudio"),
+                .linkedFramework("CoreAudio"),
+                .linkedFramework("MusicKit")
+            ]
         ),
         .testTarget(name: "CarDSPCoreTests", dependencies: ["CarDSPCore"])
     ]
