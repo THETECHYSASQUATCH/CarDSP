@@ -1,4 +1,3 @@
-
 // swift-tools-version: 6.0
 import PackageDescription
 
@@ -30,7 +29,7 @@ targets.append(.executableTarget(
 
 let package = Package(
     name: "CarDSP",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v16)],
     products: products,
     targets: targets
 )
