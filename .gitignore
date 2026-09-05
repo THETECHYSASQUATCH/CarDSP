@@ -1,0 +1,4 @@
+.build/
+.swiftpm/
+.vscode/.swiftpm/
+.DS_Store

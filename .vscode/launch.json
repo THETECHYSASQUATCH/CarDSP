@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:CarDSP}",
+            "name": "Debug CarDSPApp",
+            "target": "CarDSPApp",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug CarDSPApp"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:CarDSP}",
+            "name": "Release CarDSPApp",
+            "target": "CarDSPApp",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release CarDSPApp"
+        }
+    ]
+}

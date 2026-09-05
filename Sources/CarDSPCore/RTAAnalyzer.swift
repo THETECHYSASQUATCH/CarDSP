@@ -20,7 +20,6 @@ public enum RTAAnalyzer {
     public static func measure(from samples: [Float], sampleRate: Float) -> [RTAFrequencyBand] {
         guard !samples.isEmpty, sampleRate > 0 else { return [] }
 
-        let safeLength = max(samples.count, 1)
         var bandLevels = Array(repeating: Float.leastNonzeroMagnitude, count: standardBands.count)
         var bandGains = Array(repeating: Float(0), count: standardBands.count)
 
@@ -36,7 +35,7 @@ public enum RTAAnalyzer {
                 var right = running
                 filter.process(left: &left, right: &right)
                 let magnitude = abs(left)
-                let smoothing = 0.9
+                let smoothing: Float = 0.9
                 bandGains[index] = max(bandGains[index] * smoothing, magnitude)
                 bandLevels[index] = max(bandLevels[index], bandGains[index])
                 running = left

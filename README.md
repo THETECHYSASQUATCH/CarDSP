@@ -13,11 +13,10 @@ Real-time DSP foundation for an iPhone car-audio EQ.
 - Soft limiter
 - Compressor stage with threshold and ratio control
 - Time alignment and phase/polarity support
-- DSP configuration, preset persistence, and vehicle profile support
+- DSP configuration and preset persistence
 - Pink noise and sine sweep generation helpers
 - AVAudioSession Bluetooth route configuration
 - MusicKit `ApplicationMusicPlayer` authorization/playback coordinator
-- Vehicle profile support for custom tuning profiles
 
 ## Important architecture note
 
@@ -32,7 +31,6 @@ MusicKit playback and an AVAudioEngine render graph are separate concerns on iOS
 - Phase/polarity support in the engine
 - Compressor stage with adjustable threshold and ratio
 - Preset persistence via `UserDefaults`
-- Vehicle profile configuration support
 
 ## Current app tabs
 
