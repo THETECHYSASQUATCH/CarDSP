@@ -22,6 +22,14 @@ public struct DSPConfiguration: Codable, Sendable {
     public var masterGainDB: Float = 0
     public var limiterThresholdDB: Float = -1
     public var limiterEnabled: Bool = true
+    public var timeAlignmentMs: Float = 0
+    public var polarityInverted: Bool = false
+    public var compressorThresholdDB: Float = -6
+    public var compressorRatio: Float = 3.0
+    public var compressorAttackSeconds: Float = 0.01
+    public var compressorReleaseSeconds: Float = 0.12
+
+    public static let storageKey = "CarDSP.Configuration"
 
     public init() {
         let frequencies: [Float] = [
@@ -40,5 +48,15 @@ public struct DSPConfiguration: Codable, Sendable {
         c.lowPassHz = 90
         c.limiterThresholdDB = -1
         return c
+    }
+
+    public func save(to userDefaults: UserDefaults = .standard) {
+        guard let encoded = try? JSONEncoder().encode(self) else { return }
+        userDefaults.set(encoded, forKey: Self.storageKey)
+    }
+
+    public static func load(from userDefaults: UserDefaults = .standard) -> DSPConfiguration? {
+        guard let data = userDefaults.data(forKey: Self.storageKey) else { return nil }
+        return try? JSONDecoder().decode(DSPConfiguration.self, from: data)
     }
 }
