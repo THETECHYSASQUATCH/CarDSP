@@ -29,7 +29,7 @@ targets.append(.executableTarget(
 
 let package = Package(
     name: "CarDSP",
-    platforms: [.iOS(.v16)],
+    platforms: [.iOS(.v26)],
     products: products,
     targets: targets
 )
