@@ -1,6 +1,6 @@
-
 import Foundation
 import MusicKit
+import SwiftUI
 
 @MainActor
 final class MusicPlaybackCoordinator: ObservableObject {
