@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "swift",
+			"args": [
+				"build",
+				"--build-tests",
+				"-Xlinker",
+				"-debug:dwarf"
+			],
+			"env": {},
+			"cwd": "c:\\Users\\thetechysasquatch\\Documents\\GitHub\\CarDSP",
+			"disableTaskQueue": true,
+			"group": "build",
+			"problemMatcher": [],
+			"label": "swift: Build All",
+			"detail": "swift build --build-tests -Xlinker -debug:dwarf"
+		}
+	]
+}
