@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import SwiftUI
 
 @MainActor
 public final class MicrophoneAnalyzer: ObservableObject {
