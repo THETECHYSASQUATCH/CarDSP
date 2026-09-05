@@ -1,0 +1,27 @@
+name: Swift
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Select Xcode version
+      run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+    
+    - name: Build
+      run: swift build -v
+      env:
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    
+    - name: Run tests
+      run: swift test -v
+      env:
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
