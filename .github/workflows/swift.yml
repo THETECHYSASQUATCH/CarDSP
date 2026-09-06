@@ -16,4 +16,4 @@ jobs:
       - name: Show toolchain
         run: swift --version
       - name: Run DSP core tests
-        run: swift test --target CarDSPCoreTests -v
+        run: swift test -v
