@@ -19,7 +19,7 @@ let package = Package(
             path: "Sources/CarDSPApp",
             linkerSettings: [
                 .linkedFramework("SwiftUI"),
-                .linkedFramework("UIKit"),
+                .linkedFramework("UIKit", .when(platforms: [.iOS])),
                 .linkedFramework("AVFoundation"),
                 .linkedFramework("AVFAudio"),
                 .linkedFramework("CoreAudio"),
