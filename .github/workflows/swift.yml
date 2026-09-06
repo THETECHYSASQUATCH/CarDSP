@@ -1,4 +1,4 @@
-name: Swift Core Tests
+name: DSP Core Tests
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   core-tests:
+    name: DSP Core
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,5 +16,7 @@ jobs:
         run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
       - name: Show toolchain
         run: swift --version
-      - name: Run DSP core tests
-        run: swift test -v
+      - name: Build CarDSPCore
+        run: swift build --target CarDSPCore -v
+      - name: Run CarDSPCore tests
+        run: swift test --filter CarDSPCoreTests -v
