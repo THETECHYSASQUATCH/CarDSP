@@ -31,7 +31,6 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
         return configuration
     }
 
-    /// Clears delay, filter and compressor state without changing settings.
     public func reset() {
         lock.lock(); defer { lock.unlock() }
         resetState()
@@ -42,8 +41,8 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
         for index in filters.indices { filters[index].reset() }
         leftCompressorGain = 1
         rightCompressorGain = 1
-        leftDelayBuffer.withUnsafeMutableBufferPointer { $0.initialize(repeating: 0) }
-        rightDelayBuffer.withUnsafeMutableBufferPointer { $0.initialize(repeating: 0) }
+        for index in leftDelayBuffer.indices { leftDelayBuffer[index] = 0 }
+        for index in rightDelayBuffer.indices { rightDelayBuffer[index] = 0 }
         leftDelayWriteIndex = 0
         rightDelayWriteIndex = 0
     }
@@ -51,15 +50,12 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
     private func rebuildFilters(resetState: Bool) {
         filters = configuration.eq.map { band in
             var filter = Biquad()
-            filter.setPeakingEQ(
-                sampleRate: configuration.sampleRate,
-                frequency: min(max(band.frequency, 10), configuration.sampleRate * 0.45),
-                q: max(band.q, 0.05),
-                gainDB: band.gainDB
-            )
+            filter.setPeakingEQ(sampleRate: configuration.sampleRate,
+                                 frequency: min(max(band.frequency, 10), configuration.sampleRate * 0.45),
+                                 q: max(band.q, 0.05),
+                                 gainDB: band.gainDB)
             return filter
         }
-
         hp = Biquad()
         hp.setHighPass(sampleRate: configuration.sampleRate,
                        frequency: min(max(configuration.highPassHz, 10), configuration.sampleRate * 0.45))
@@ -69,7 +65,6 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
         lp = Biquad()
         lp.setLowPass(sampleRate: configuration.sampleRate,
                       frequency: min(max(configuration.lowPassHz, 20), configuration.sampleRate * 0.45))
-
         if resetState { resetState() }
     }
 
@@ -79,7 +74,6 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
         let c = configuration
         let linearGain = powf(10, c.masterGainDB / 20)
         let limiterThreshold = powf(10, c.limiterThresholdDB / 20)
-
         for frame in 0..<frameCount {
             let index = frame * 2
             var left = timeAlignedSample(samples[index], channel: 0, configuration: c) * linearGain
@@ -87,14 +81,15 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
             if c.polarityInverted { left = -left; right = -right }
             hp.process(left: &left, right: &right)
             if c.subsonicHz > 10 { subsonic.process(left: &left, right: &right) }
-            for index in filters.indices { filters[index].process(left: &left, right: &right) }
+            for filterIndex in filters.indices { filters[filterIndex].process(left: &left, right: &right) }
             left = applyCompressor(left, channel: 0, configuration: c)
             right = applyCompressor(right, channel: 1, configuration: c)
             if c.limiterEnabled {
                 left = softLimit(left, limiterThreshold)
                 right = softLimit(right, limiterThreshold)
             }
-            samples[index] = left; samples[index + 1] = right
+            samples[index] = left
+            samples[index + 1] = right
         }
     }
 
@@ -142,9 +137,7 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
         let amplitude = abs(value)
         let attack = expf(-1 / max(configuration.sampleRate * configuration.compressorAttackSeconds, 1))
         let release = expf(-1 / max(configuration.sampleRate * configuration.compressorReleaseSeconds, 1))
-        let desiredGain: Float
-        if amplitude <= threshold { desiredGain = 1 }
-        else { desiredGain = (threshold + (amplitude - threshold) / ratio) / max(amplitude, 0.0001) }
+        let desiredGain: Float = amplitude <= threshold ? 1 : (threshold + (amplitude - threshold) / ratio) / max(amplitude, 0.0001)
         if channel == 0 {
             leftCompressorGain = amplitude > threshold ? leftCompressorGain * attack + desiredGain * (1 - attack) : leftCompressorGain * release + desiredGain * (1 - release)
             return value * leftCompressorGain
