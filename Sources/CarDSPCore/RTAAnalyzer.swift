@@ -1,8 +1,9 @@
 import Foundation
 
-public struct RTAFrequencyBand {
+public struct RTAFrequencyBand: Identifiable, Sendable {
     public let frequency: Float
     public let levelDB: Float
+    public var id: Float { frequency }
 
     public init(frequency: Float, levelDB: Float) {
         self.frequency = frequency
@@ -17,38 +18,30 @@ public enum RTAAnalyzer {
         10000, 12500, 16000, 20000
     ]
 
+    /// Measures each standard RTA band using a real band-pass filter and RMS.
     public static func measure(from samples: [Float], sampleRate: Float) -> [RTAFrequencyBand] {
         guard !samples.isEmpty, sampleRate > 0 else { return [] }
 
-        var bandLevels = Array(repeating: Float.leastNonzeroMagnitude, count: standardBands.count)
-        var bandGains = Array(repeating: Float(0), count: standardBands.count)
+        return standardBands.map { frequency in
+            let center = min(max(frequency, 20), sampleRate * 0.45)
+            var filter = Biquad()
+            filter.setBandPass(sampleRate: sampleRate, frequency: center, q: 1.4)
 
-        for sample in samples {
-            var running = sample
-            for index in standardBands.indices {
-                var filter = Biquad()
-                filter.setPeakingEQ(sampleRate: sampleRate,
-                                    frequency: standardBands[index],
-                                    q: 1.0,
-                                    gainDB: 0)
-                var left = running
-                var right = running
+            var sumSquares: Double = 0
+            var left: Float = 0
+            var right: Float = 0
+
+            for sample in samples {
+                left = sample
+                right = sample
                 filter.process(left: &left, right: &right)
-                let magnitude = abs(left)
-                let smoothing: Float = 0.9
-                bandGains[index] = max(bandGains[index] * smoothing, magnitude)
-                bandLevels[index] = max(bandLevels[index], bandGains[index])
-                running = left
+                let value = Double(left)
+                sumSquares += value * value
             }
-        }
 
-        let dbValues = bandLevels.map { level in
-            let amplitude = max(level, 1.0e-8)
-            return 20 * log10(amplitude)
-        }
-
-        return zip(standardBands, dbValues).map { frequency, levelDB in
-            RTAFrequencyBand(frequency: frequency, levelDB: levelDB)
+            let rms = sqrt(sumSquares / Double(samples.count))
+            let db = 20 * log10(max(rms, 1.0e-8))
+            return RTAFrequencyBand(frequency: frequency, levelDB: Float(db))
         }
     }
 }
