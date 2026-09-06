@@ -20,7 +20,7 @@ final class AudioEngineController: ObservableObject {
 
     func start(dsp: RealTimeDSPEngine) {
         do {
-            try AudioSessionController.shared.configurePlayback()
+            try AudioSessionController.shared.configureForPlayback()
             let format = engine.outputNode.inputFormat(forBus: 0)
             guard format.sampleRate > 0, format.channelCount > 0 else {
                 status = "No valid audio output"
