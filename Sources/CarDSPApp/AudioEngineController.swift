@@ -1,17 +1,18 @@
 import Foundation
 import AVFAudio
+import Combine
 
 @MainActor
-public final class AudioEngineController: ObservableObject {
-    public static let shared = AudioEngineController()
+final class AudioEngineController: ObservableObject {
+    static let shared = AudioEngineController()
 
     private let engine = AVAudioEngine()
     private let playerNode = AVAudioPlayerNode()
     private let mixer = AVAudioMixerNode()
 
-    @Published public private(set) var isRunning = false
-    @Published public private(set) var status = "Idle"
-    @Published public private(set) var outputRoute = "No output"
+    @Published private(set) var isRunning = false
+    @Published private(set) var status = "Idle"
+    @Published private(set) var outputRoute = "No output"
 
     private init() {
         engine.attach(playerNode)
@@ -28,10 +29,8 @@ public final class AudioEngineController: ObservableObject {
         }
     }
 
-    public func start() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default, options: [.allowBluetoothA2DP])
-        try session.setActive(true)
+    func start() throws {
+        try AudioSessionController.shared.configureForPlayback()
         refreshRoute()
 
         if !engine.isRunning {
@@ -42,21 +41,22 @@ public final class AudioEngineController: ObservableObject {
         status = "Audio engine running"
     }
 
-    public func stop() {
+    func stop() {
         playerNode.stop()
         engine.stop()
         isRunning = false
         status = "Audio engine stopped"
+        AudioSessionController.shared.deactivate()
     }
 
-    public func schedule(_ buffer: AVAudioPCMBuffer, completion: (() -> Void)? = nil) {
+    func schedule(_ buffer: AVAudioPCMBuffer, completion: (() -> Void)? = nil) {
         playerNode.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { _ in
             completion?()
         }
         if !isRunning { try? start() }
     }
 
-    public func refreshRoute() {
+    func refreshRoute() {
         let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
         outputRoute = outputs.map { "\($0.portName) • \($0.portType.rawValue)" }.joined(separator: ", ")
         if outputRoute.isEmpty { outputRoute = "No output" }
