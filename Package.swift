@@ -3,7 +3,10 @@ import PackageDescription
 
 let package = Package(
     name: "CarDSP",
-    platforms: [.iOS("18.0")],
+    platforms: [
+        .iOS("18.0"),
+        .macOS("10.15")
+    ],
     products: [
         .library(name: "CarDSPCore", targets: ["CarDSPCore"]),
         .executable(name: "CarDSPApp", targets: ["CarDSPApp"])
