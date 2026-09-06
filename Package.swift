@@ -5,7 +5,7 @@ let package = Package(
     name: "CarDSP",
     platforms: [
         .iOS("18.0"),
-        .macOS("10.15")
+        .macOS("14.0")
     ],
     products: [
         .library(name: "CarDSPCore", targets: ["CarDSPCore"]),
