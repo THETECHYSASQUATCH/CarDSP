@@ -1,4 +1,4 @@
-name: Swift
+name: Swift Core Tests
 
 on:
   push:
@@ -7,21 +7,17 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  core-tests:
     runs-on: macos-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Select Xcode version
-      run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-    
-    - name: Build
-      run: swift build -v
-      env:
-        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
-    
-    - name: Run tests
-      run: swift test -v
-      env:
-        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Run DSP core tests
+        run: swift test -v
