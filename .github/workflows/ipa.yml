@@ -1,0 +1,82 @@
+name: Unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Sources/**'
+      - 'Package.swift'
+      - '.github/workflows/ipa.yml'
+
+jobs:
+  build-ipa:
+    name: Build Unsigned IPA
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Show toolchain and device SDK
+        run: |
+          swift --version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Build CarDSPApp for iPhone
+        run: |
+          set -euo pipefail
+          SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+          swift build \
+            --product CarDSPApp \
+            --configuration release \
+            --triple arm64-apple-ios18.0 \
+            --sdk "$SDK_PATH" \
+            -v
+
+      - name: Assemble app bundle
+        run: |
+          set -euo pipefail
+
+          BUILD_DIR=".build/arm64-apple-ios/release"
+          APP_DIR="Payload/CarDSP.app"
+          BUNDLE_ID="com.thetechysasquatch.CarDSP"
+
+          rm -rf Payload CarDSP-unsigned.ipa
+          mkdir -p "$APP_DIR"
+
+          cp "$BUILD_DIR/CarDSPApp" "$APP_DIR/CarDSP"
+          chmod +x "$APP_DIR/CarDSP"
+
+          cp Sources/CarDSPApp/Info.plist "$APP_DIR/Info.plist"
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable CarDSP" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName CarDSP" "$APP_DIR/Info.plist"
+
+          # SwiftPM does not substitute Xcode build-setting placeholders in Info.plist.
+          # Ensure none remain in the packaged app.
+          if grep -q '\$(' "$APP_DIR/Info.plist"; then
+            echo "Unresolved Info.plist build-setting placeholder detected"
+            cat "$APP_DIR/Info.plist"
+            exit 1
+          fi
+
+          plutil -lint "$APP_DIR/Info.plist"
+          file "$APP_DIR/CarDSP"
+
+      - name: Create unsigned IPA
+        run: |
+          set -euo pipefail
+          ditto -c -k --sequesterRsrc --keepParent Payload CarDSP-unsigned.ipa
+          unzip -l CarDSP-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarDSP-unsigned-ipa
+          path: CarDSP-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
