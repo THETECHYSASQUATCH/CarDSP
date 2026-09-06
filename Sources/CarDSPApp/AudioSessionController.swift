@@ -1,7 +1,10 @@
 import AVFAudio
 
+@MainActor
 final class AudioSessionController {
     static let shared = AudioSessionController()
+
+    private init() {}
 
     func configureForPlayback() throws {
         let session = AVAudioSession.sharedInstance()
