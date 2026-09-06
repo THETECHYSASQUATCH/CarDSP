@@ -2,10 +2,9 @@ import Foundation
 
 /// Real-time stereo DSP engine.
 ///
-/// The processing path keeps filter and dynamics state between buffers. The
-/// configuration lock is only held while a buffer is processed, so a
-/// configuration update cannot race the audio state. Callers should still
-/// avoid calling `setConfiguration` from an audio render callback.
+/// Filter, delay, and compressor state is retained between buffers. The lock
+/// prevents configuration changes from racing the audio state; configuration
+/// changes should be made from the UI/control thread, never the render callback.
 public final class RealTimeDSPEngine: @unchecked Sendable {
     private let lock = NSLock()
     private var configuration = DSPConfiguration()
@@ -25,7 +24,6 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
         rebuildFilters(resetState: true)
     }
 
-    /// Updates coefficients and resets filter/dynamics state at a safe point.
     public func setConfiguration(_ configuration: DSPConfiguration) {
         lock.lock()
         self.configuration = configuration
@@ -69,18 +67,16 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
             frequency: min(max(configuration.lowPassHz, 20), configuration.sampleRate * 0.45)
         )
 
-        if resetState {
-            filters.forEach { _ in }
-            hp.reset()
-            subsonic.reset()
-            lp.reset()
-            leftCompressorGain = 1
-            rightCompressorGain = 1
-            leftDelayBuffer.withUnsafeMutableBufferPointer { $0.initialize(repeating: 0) }
-            rightDelayBuffer.withUnsafeMutableBufferPointer { $0.initialize(repeating: 0) }
-            leftDelayWriteIndex = 0
-            rightDelayWriteIndex = 0
-        }
+        guard resetState else { return }
+        hp.reset()
+        subsonic.reset()
+        lp.reset()
+        leftCompressorGain = 1
+        rightCompressorGain = 1
+        for i in leftDelayBuffer.indices { leftDelayBuffer[i] = 0 }
+        for i in rightDelayBuffer.indices { rightDelayBuffer[i] = 0 }
+        leftDelayWriteIndex = 0
+        rightDelayWriteIndex = 0
     }
 
     /// Processes interleaved stereo Float32 samples in-place.
@@ -92,6 +88,7 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
 
         let c = configuration
         let linearGain = powf(10, c.masterGainDB / 20)
+        let limiterThreshold = powf(10, c.limiterThresholdDB / 20)
 
         for frame in 0..<frameCount {
             let index = frame * 2
@@ -107,18 +104,16 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
             if c.subsonicHz > 10 {
                 subsonic.process(left: &left, right: &right)
             }
-
-            for index in filters.indices {
-                filters[index].process(left: &left, right: &right)
+            for i in filters.indices {
+                filters[i].process(left: &left, right: &right)
             }
 
             left = applyCompressor(left, channel: 0, configuration: c)
             right = applyCompressor(right, channel: 1, configuration: c)
 
             if c.limiterEnabled {
-                let threshold = powf(10, c.limiterThresholdDB / 20)
-                left = softLimit(left, threshold)
-                right = softLimit(right, threshold)
+                left = softLimit(left, limiterThreshold)
+                right = softLimit(right, limiterThreshold)
             }
 
             samples[index] = left
@@ -134,7 +129,7 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
 
         let c = configuration
         let linearGain = powf(10, c.masterGainDB / 20)
-        let threshold = powf(10, c.limiterThresholdDB / 20)
+        let limiterThreshold = powf(10, c.limiterThresholdDB / 20)
 
         for frame in 0..<frameCount {
             let index = frame * 2
@@ -150,8 +145,8 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
             lp.process(left: &left, right: &right)
             left = applyCompressor(left, channel: 0, configuration: c)
             right = applyCompressor(right, channel: 1, configuration: c)
-            samples[index] = softLimit(left, threshold)
-            samples[index + 1] = softLimit(right, threshold)
+            samples[index] = softLimit(left, limiterThreshold)
+            samples[index + 1] = softLimit(right, limiterThreshold)
         }
     }
 
