@@ -7,7 +7,11 @@ on:
     paths:
       - 'Sources/**'
       - 'Package.swift'
+      - 'VERSION'
       - '.github/workflows/ipa.yml'
+
+permissions:
+  contents: write
 
 jobs:
   build-ipa:
@@ -16,6 +20,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Read release version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Select Xcode
         run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
@@ -43,22 +56,21 @@ jobs:
           BUILD_DIR=".build/arm64-apple-ios/release"
           APP_DIR="Payload/CarDSP.app"
           BUNDLE_ID="com.thetechysasquatch.CarDSP"
+          VERSION="${{ steps.version.outputs.version }}"
 
           rm -rf Payload CarDSP-unsigned.ipa
           mkdir -p "$APP_DIR"
 
           cp "$BUILD_DIR/CarDSPApp" "$APP_DIR/CarDSP"
           chmod +x "$APP_DIR/CarDSP"
-
           cp Sources/CarDSPApp/Info.plist "$APP_DIR/Info.plist"
 
           /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable CarDSP" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleName CarDSP" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleDevelopmentRegion en" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION%%-*}" "$APP_DIR/Info.plist"
 
-          # SwiftPM does not substitute Xcode build-setting placeholders in Info.plist.
-          # Ensure none remain in the packaged app.
           if grep -q '\$(' "$APP_DIR/Info.plist"; then
             echo "Unresolved Info.plist build-setting placeholder detected"
             cat "$APP_DIR/Info.plist"
@@ -71,13 +83,34 @@ jobs:
       - name: Create unsigned IPA
         run: |
           set -euo pipefail
-          ditto -c -k --sequesterRsrc --keepParent Payload CarDSP-unsigned.ipa
-          unzip -l CarDSP-unsigned.ipa
+          IPA="CarDSP-${{ steps.version.outputs.version }}-unsigned.ipa"
+          ditto -c -k --sequesterRsrc --keepParent Payload "$IPA"
+          unzip -l "$IPA"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CarDSP-unsigned-ipa
-          path: CarDSP-unsigned.ipa
+          name: CarDSP-${{ steps.version.outputs.version }}-unsigned-ipa
+          path: CarDSP-${{ steps.version.outputs.version }}-unsigned.ipa
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish alpha release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          IPA="CarDSP-${VERSION}-unsigned.ipa"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$IPA" --clobber
+          else
+            gh release create "$TAG" "$IPA" \
+              --target "$GITHUB_SHA" \
+              --title "CarDSP ${VERSION}" \
+              --prerelease \
+              --notes "First CarDSP alpha test release. Includes an unsigned ARM64 iPhone IPA for development/sideload testing. The IPA must be signed with a valid Apple development identity and provisioning profile before installation."
+          fi
