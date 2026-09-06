@@ -27,7 +27,6 @@ struct EQScreen: View {
                     }
                     Button("Kia Sportage Sub Setup") {
                         viewModel.applyPreset(CarAudioProfile.kiaSportage2017.defaultConfiguration)
-                        selectedPreset = "Flat"
                     }
                     Button("Reset Flat", role: .destructive) {
                         viewModel.resetFlat()
@@ -47,9 +46,7 @@ struct EQScreen: View {
                                         value: Binding(
                                             get: { Double(viewModel.configuration.eq[index].gainDB) },
                                             set: { value in
-                                                viewModel.updateConfiguration { config in
-                                                    config.eq[index].gainDB = Float(value)
-                                                }
+                                                viewModel.updateConfiguration { $0.eq[index].gainDB = Float(value) }
                                             }
                                         ),
                                         in: -12...12
@@ -67,21 +64,25 @@ struct EQScreen: View {
                 }
 
                 Section("Crossover") {
-                    valueSlider("High-pass", value: FloatBinding(value: viewModel.configuration.highPassHz) { value in
-                        viewModel.updateConfiguration { $0.highPassHz = value }
-                    }, range: 10...300, format: "%.0f Hz")
-                    valueSlider("Subsonic", value: FloatBinding(value: viewModel.configuration.subsonicHz) { value in
-                        viewModel.updateConfiguration { $0.subsonicHz = value }
-                    }, range: 10...80, format: "%.0f Hz")
-                    valueSlider("Low-pass", value: FloatBinding(value: viewModel.configuration.lowPassHz) { value in
-                        viewModel.updateConfiguration { $0.lowPassHz = value }
-                    }, range: 40...250, format: "%.0f Hz")
+                    valueSlider("High-pass", value: Binding(
+                        get: { viewModel.configuration.highPassHz },
+                        set: { value in viewModel.updateConfiguration { $0.highPassHz = value } }
+                    ), range: 10...300, format: "%.0f Hz")
+                    valueSlider("Subsonic", value: Binding(
+                        get: { viewModel.configuration.subsonicHz },
+                        set: { value in viewModel.updateConfiguration { $0.subsonicHz = value } }
+                    ), range: 10...80, format: "%.0f Hz")
+                    valueSlider("Low-pass", value: Binding(
+                        get: { viewModel.configuration.lowPassHz },
+                        set: { value in viewModel.updateConfiguration { $0.lowPassHz = value } }
+                    ), range: 40...250, format: "%.0f Hz")
                 }
 
                 Section("Output") {
-                    valueSlider("Master gain", value: FloatBinding(value: viewModel.configuration.masterGainDB) { value in
-                        viewModel.updateConfiguration { $0.masterGainDB = value }
-                    }, range: -12...6, format: "%+.1f dB")
+                    valueSlider("Master gain", value: Binding(
+                        get: { viewModel.configuration.masterGainDB },
+                        set: { value in viewModel.updateConfiguration { $0.masterGainDB = value } }
+                    ), range: -12...6, format: "%+.1f dB")
                     Toggle("Limiter", isOn: Binding(
                         get: { viewModel.configuration.limiterEnabled },
                         set: { enabled in viewModel.updateConfiguration { $0.limiterEnabled = enabled } }
@@ -107,14 +108,4 @@ struct EQScreen: View {
             Slider(value: value, in: range)
         }
     }
-}
-
-private struct FloatBinding: DynamicProperty {
-    private let binding: Binding<Float>
-
-    init(value: Float, set: @escaping (Float) -> Void) {
-        self.binding = Binding(get: { value }, set: set)
-    }
-
-    var wrappedValue: Float { binding.wrappedValue }
 }
