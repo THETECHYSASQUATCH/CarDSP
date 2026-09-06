@@ -145,11 +145,13 @@ jobs:
           security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
 
           python3 - <<'PY'
+          import os
           import plistlib
           from pathlib import Path
 
-          profile_path = Path("${RUNNER_TEMP}") / "profile.plist"
-          entitlements_path = Path("${RUNNER_TEMP}") / "CarDSP.entitlements"
+          runner_temp = Path(os.environ["RUNNER_TEMP"])
+          profile_path = runner_temp / "profile.plist"
+          entitlements_path = runner_temp / "CarDSP.entitlements"
           with profile_path.open("rb") as f:
               profile = plistlib.load(f)
           entitlements = profile.get("Entitlements", {})
@@ -164,7 +166,7 @@ jobs:
 
           cp "$PROFILE_PATH" "$APP_DIR/embedded.mobileprovision"
 
-          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk '/[0-9A-F]{40}/ {print $2; exit}')"
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk '/[0-9A-F][0-9A-F][0-9A-F][0-9A-F]/ {print $2; exit}')"
           if [[ -z "$IDENTITY" ]]; then
             echo "No usable Apple code-signing identity found in imported certificate."
             exit 1
