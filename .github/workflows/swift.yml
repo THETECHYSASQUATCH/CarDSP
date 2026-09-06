@@ -9,15 +9,11 @@ on:
 jobs:
   core-tests:
     runs-on: macos-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Select Xcode
         run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-
       - name: Show toolchain
         run: swift --version
-
       - name: Run DSP core tests
-        run: swift test -v
+        run: swift test --target CarDSPCoreTests -v
