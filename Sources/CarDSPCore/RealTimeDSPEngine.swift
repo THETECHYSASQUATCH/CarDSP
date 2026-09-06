@@ -12,9 +12,9 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
     private var leftCompressorGain: Float = 1; private var rightCompressorGain: Float = 1
 
     public init(configuration: DSPConfiguration = DSPConfiguration()) {
-        self.configuration = configuration; rebuildFilters(resetState: true)
+        self.configuration = configuration; rebuildFilters(shouldResetState: true)
     }
-    public func setConfiguration(_ configuration: DSPConfiguration) { lock.lock(); defer { lock.unlock() }; self.configuration = configuration; rebuildFilters(resetState: true) }
+    public func setConfiguration(_ configuration: DSPConfiguration) { lock.lock(); defer { lock.unlock() }; self.configuration = configuration; rebuildFilters(shouldResetState: true) }
     public func currentConfiguration() -> DSPConfiguration { lock.lock(); defer { lock.unlock() }; return configuration }
     public func reset() { lock.lock(); defer { lock.unlock() }; resetState() }
 
@@ -25,14 +25,14 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
         leftDelayWriteIndex = 0; rightDelayWriteIndex = 0
     }
 
-    private func rebuildFilters(resetState: Bool) {
+    private func rebuildFilters(shouldResetState: Bool) {
         filters = configuration.eq.map { band in
             var f = Biquad(); f.setPeakingEQ(sampleRate: configuration.sampleRate, frequency: min(max(band.frequency, 10), configuration.sampleRate * 0.45), q: max(band.q, 0.05), gainDB: band.gainDB); return f
         }
         hp = Biquad(); hp.setHighPass(sampleRate: configuration.sampleRate, frequency: min(max(configuration.highPassHz, 10), configuration.sampleRate * 0.45))
         subsonic = Biquad(); subsonic.setHighPass(sampleRate: configuration.sampleRate, frequency: min(max(configuration.subsonicHz, 10), configuration.sampleRate * 0.45))
         lp = Biquad(); lp.setLowPass(sampleRate: configuration.sampleRate, frequency: min(max(configuration.lowPassHz, 20), configuration.sampleRate * 0.45))
-        if resetState { resetState() }
+        if shouldResetState { resetState() }
     }
 
     public func processInterleavedStereo(_ samples: UnsafeMutablePointer<Float>, frameCount: Int) {
@@ -68,7 +68,7 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
 
     public func processSubwooferInterleavedStereo(_ samples: UnsafeMutablePointer<Float>, frameCount: Int) {
         guard frameCount > 0 else { return }; lock.lock(); defer { lock.unlock() }; let c = configuration; let gain = powf(10, c.masterGainDB / 20); let threshold = powf(10, c.limiterThresholdDB / 20)
-        for frame in 0..<frameCount { let i = frame * 2; var l = timeAlignedSample(samples[i], channel: 0, configuration: c) * gain; var r = timeAlignedSample(samples[i + 1], channel: 1, configuration: c) * gain; if c.polarityInverted { l = -l; r = -r }; subsonic.process(left: &l, right: &r); lp.process(left: &l, right: &r); l = applyCompressor(l, channel: 0, configuration: c); r = applyCompressor(r, channel: 1, configuration: c); samples[i] = softLimit(l, threshold); samples[i + 1] = softLimit(r, threshold) }
+        for frame in 0..<frameCount { let i = frame * 2; var l = timeAlignedSample(samples[i], channel: 0, configuration: c) * gain; var r = timeAlignedSample(samples[i + 1], channel: 1, configuration: c) * gain; if c.polarityInverted { l = -l; r = -r }; subsonic.process(left: &l, right: &r); lp.process(left: &l, right: &r); l = applyCompressor(l, channel: 0, configuration: c); r = applyCompressor(r, channel: 1, configuration: c); if c.limiterEnabled { l = softLimit(l, threshold); r = softLimit(r, threshold) }; samples[i] = l; samples[i + 1] = r }
     }
 
     private func timeAlignedSample(_ sample: Float, channel: Int, configuration: DSPConfiguration) -> Float {
