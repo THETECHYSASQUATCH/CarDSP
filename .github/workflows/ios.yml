@@ -1,0 +1,28 @@
+name: iOS Simulator Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ios-build:
+    name: iOS Simulator
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+      - name: Show toolchain and SDK
+        run: |
+          swift --version
+          xcrun --sdk iphonesimulator --show-sdk-version
+      - name: Build CarDSPApp for iOS Simulator
+        run: |
+          SDK_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          swift build \
+            --product CarDSPApp \
+            --triple arm64-apple-ios18.0-simulator \
+            --sdk "$SDK_PATH" \
+            -v
