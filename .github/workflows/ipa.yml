@@ -1,4 +1,4 @@
-name: Unsigned iOS IPA
+name: iOS IPA
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build-ipa:
-    name: Build Unsigned IPA
+    name: Build iOS IPA
     runs-on: macos-latest
 
     steps:
@@ -58,7 +58,7 @@ jobs:
           BUNDLE_ID="com.thetechysasquatch.CarDSP"
           VERSION="${{ steps.version.outputs.version }}"
 
-          rm -rf Payload CarDSP-unsigned.ipa
+          rm -rf Payload CarDSP-*-unsigned.ipa CarDSP-*-signed.ipa
           mkdir -p "$APP_DIR"
 
           cp "$BUILD_DIR/CarDSPApp" "$APP_DIR/CarDSP"
@@ -87,11 +87,120 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent Payload "$IPA"
           unzip -l "$IPA"
 
-      - name: Upload IPA artifact
+      - name: Check for signing secrets
+        id: signing
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [[ -n "$BUILD_CERTIFICATE_BASE64" && -n "$BUILD_PROVISION_PROFILE_BASE64" && -n "$P12_PASSWORD" && -n "$KEYCHAIN_PASSWORD" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Apple signing assets detected; a signed IPA will also be produced."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Apple signing assets are not configured; unsigned IPA only."
+          fi
+
+      - name: Install Apple signing assets
+        if: steps.signing.outputs.available == 'true'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          CERTIFICATE_PATH="$RUNNER_TEMP/build_certificate.p12"
+          PROFILE_PATH="$RUNNER_TEMP/build.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/car-dsp-signing.keychain-db"
+
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/CarDSP.mobileprovision"
+
+      - name: Validate profile and sign app
+        if: steps.signing.outputs.available == 'true'
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          APP_DIR="Payload/CarDSP.app"
+          PROFILE_PATH="$RUNNER_TEMP/build.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/car-dsp-signing.keychain-db"
+          BUNDLE_ID="com.thetechysasquatch.CarDSP"
+
+          security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
+
+          python3 - <<'PY'
+          import plistlib
+          from pathlib import Path
+
+          profile_path = Path("${RUNNER_TEMP}") / "profile.plist"
+          entitlements_path = Path("${RUNNER_TEMP}") / "CarDSP.entitlements"
+          with profile_path.open("rb") as f:
+              profile = plistlib.load(f)
+          entitlements = profile.get("Entitlements", {})
+          app_identifier = entitlements.get("application-identifier", "")
+          bundle_id = "com.thetechysasquatch.CarDSP"
+          if not (app_identifier == bundle_id or app_identifier.endswith("." + bundle_id)):
+              raise SystemExit(f"Provisioning profile App ID {app_identifier!r} does not match {bundle_id!r}")
+          with entitlements_path.open("wb") as f:
+              plistlib.dump(entitlements, f)
+          print("Provisioning profile matches CarDSP bundle identifier.")
+          PY
+
+          cp "$PROFILE_PATH" "$APP_DIR/embedded.mobileprovision"
+
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk '/[0-9A-F]{40}/ {print $2; exit}')"
+          if [[ -z "$IDENTITY" ]]; then
+            echo "No usable Apple code-signing identity found in imported certificate."
+            exit 1
+          fi
+
+          codesign --force \
+            --sign "$IDENTITY" \
+            --entitlements "$RUNNER_TEMP/CarDSP.entitlements" \
+            --timestamp=none \
+            "$APP_DIR"
+
+          codesign --verify --deep --strict --verbose=2 "$APP_DIR"
+          codesign -d --entitlements :- "$APP_DIR" || true
+
+      - name: Create signed IPA
+        if: steps.signing.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          IPA="CarDSP-${{ steps.version.outputs.version }}-signed.ipa"
+          ditto -c -k --sequesterRsrc --keepParent Payload "$IPA"
+          unzip -l "$IPA"
+
+      - name: Upload unsigned IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: CarDSP-${{ steps.version.outputs.version }}-unsigned-ipa
           path: CarDSP-${{ steps.version.outputs.version }}-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload signed IPA artifact
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarDSP-${{ steps.version.outputs.version }}-signed-ipa
+          path: CarDSP-${{ steps.version.outputs.version }}-signed.ipa
           if-no-files-found: error
           retention-days: 14
 
@@ -101,16 +210,31 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.version }}
+          HAS_SIGNED_IPA: ${{ steps.signing.outputs.available }}
         run: |
           set -euo pipefail
-          IPA="CarDSP-${VERSION}-unsigned.ipa"
+          UNSIGNED_IPA="CarDSP-${VERSION}-unsigned.ipa"
+          SIGNED_IPA="CarDSP-${VERSION}-signed.ipa"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$IPA" --clobber
+            gh release upload "$TAG" "$UNSIGNED_IPA" --clobber
+            if [[ "$HAS_SIGNED_IPA" == "true" ]]; then
+              gh release upload "$TAG" "$SIGNED_IPA" --clobber
+            fi
           else
-            gh release create "$TAG" "$IPA" \
+            FILES=("$UNSIGNED_IPA")
+            if [[ "$HAS_SIGNED_IPA" == "true" ]]; then
+              FILES+=("$SIGNED_IPA")
+            fi
+            gh release create "$TAG" "${FILES[@]}" \
               --target "$GITHUB_SHA" \
               --title "CarDSP ${VERSION}" \
               --prerelease \
-              --notes "First CarDSP alpha test release. Includes an unsigned ARM64 iPhone IPA for development/sideload testing. The IPA must be signed with a valid Apple development identity and provisioning profile before installation."
+              --notes "CarDSP alpha test release. Includes an unsigned ARM64 iPhone IPA. When Apple signing secrets are configured, the release also includes a device-provisioned signed IPA."
           fi
+
+      - name: Clean up signing keychain
+        if: always() && steps.signing.outputs.available == 'true'
+        run: |
+          security delete-keychain "$RUNNER_TEMP/car-dsp-signing.keychain-db" || true
+          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/CarDSP.mobileprovision" || true
