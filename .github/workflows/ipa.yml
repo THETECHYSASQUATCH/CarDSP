@@ -55,6 +55,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable CarDSP" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleName CarDSP" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDevelopmentRegion en" "$APP_DIR/Info.plist"
 
           # SwiftPM does not substitute Xcode build-setting placeholders in Info.plist.
           # Ensure none remain in the packaged app.
