@@ -66,7 +66,7 @@ jobs:
           chmod +x "$APP_DIR/CarDSP"
           cp Sources/CarDSPApp/Info.plist "$APP_DIR/Info.plist"
 
-          base64 --decode Assets/AppIcon180.png.b64 > "$APP_DIR/AppIcon60x60@3x.png"
+          base64 -D Assets/AppIcon180.png.b64 > "$APP_DIR/AppIcon60x60@3x.png"
           sips -z 120 120 "$APP_DIR/AppIcon60x60@3x.png" --out "$APP_DIR/AppIcon60x60@2x.png" >/dev/null
           file "$APP_DIR/AppIcon60x60@3x.png"
           file "$APP_DIR/AppIcon60x60@2x.png"
@@ -132,8 +132,8 @@ jobs:
           PROFILE_PATH="$RUNNER_TEMP/build.mobileprovision"
           KEYCHAIN_PATH="$RUNNER_TEMP/car-dsp-signing.keychain-db"
 
-          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
-          printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 -D > "$CERTIFICATE_PATH"
+          printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 -D > "$PROFILE_PATH"
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
