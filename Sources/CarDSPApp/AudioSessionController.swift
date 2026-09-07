@@ -1,8 +1,15 @@
+import Foundation
 import AVFAudio
 
 @MainActor
 final class AudioSessionController {
     static let shared = AudioSessionController()
+
+#if os(iOS) || os(tvOS) || os(watchOS)
+    static let routeChangeNotification = AVAudioSession.routeChangeNotification
+#else
+    static let routeChangeNotification = Notification.Name("CarDSP.AudioRouteChange")
+#endif
 
     private init() {}
 
@@ -35,6 +42,29 @@ final class AudioSessionController {
 #endif
     }
 
+    func routeChangeReasonDescription(_ notification: Notification) -> String {
+#if os(iOS) || os(tvOS) || os(watchOS)
+        guard
+            let raw = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+            let reason = AVAudioSession.RouteChangeReason(rawValue: raw)
+        else { return "Audio route changed" }
+
+        switch reason {
+        case .newDeviceAvailable: return "New audio device connected"
+        case .oldDeviceUnavailable: return "Audio device disconnected"
+        case .categoryChange: return "Audio session category changed"
+        case .override: return "Audio route overridden"
+        case .wakeFromSleep: return "Audio route restored after wake"
+        case .noSuitableRouteForCategory: return "No suitable audio route"
+        case .routeConfigurationChange: return "Audio route configuration changed"
+        case .unknown: return "Audio route changed"
+        @unknown default: return "Audio route changed"
+        }
+#else
+        return "Audio route changed"
+#endif
+    }
+
     var currentRouteDescription: String {
 #if os(iOS) || os(tvOS) || os(watchOS)
         let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
@@ -51,6 +81,17 @@ final class AudioSessionController {
             return String(format: "%.1f kHz", rate / 1_000)
         }
         return String(format: "%.0f Hz", rate)
+#else
+        return "Unavailable"
+#endif
+    }
+
+    var currentChannelCountDescription: String {
+#if os(iOS) || os(tvOS) || os(watchOS)
+        let channels = AVAudioSession.sharedInstance().currentRoute.outputs.first?.channels?.count ?? 0
+        if channels == 1 { return "Mono" }
+        if channels == 2 { return "Stereo" }
+        return channels > 0 ? "\(channels) channels" : "Unavailable"
 #else
         return "Unavailable"
 #endif
