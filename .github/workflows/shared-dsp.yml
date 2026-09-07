@@ -1,0 +1,29 @@
+name: Portable DSP Core
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SharedDSP/**'
+      - '.github/workflows/shared-dsp.yml'
+  pull_request:
+    paths:
+      - 'SharedDSP/**'
+      - '.github/workflows/shared-dsp.yml'
+  workflow_dispatch:
+
+jobs:
+  shared-dsp:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S SharedDSP -B SharedDSP/build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build SharedDSP/build --config Release
+      - name: Test
+        run: ctest --test-dir SharedDSP/build -C Release --output-on-failure
