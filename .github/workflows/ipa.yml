@@ -6,6 +6,7 @@ on:
     branches: [ main ]
     paths:
       - 'Sources/**'
+      - 'Assets/**'
       - 'Package.swift'
       - 'VERSION'
       - '.github/workflows/ipa.yml'
@@ -65,11 +66,25 @@ jobs:
           chmod +x "$APP_DIR/CarDSP"
           cp Sources/CarDSPApp/Info.plist "$APP_DIR/Info.plist"
 
+          base64 --decode Assets/AppIcon180.png.b64 > "$APP_DIR/AppIcon60x60@3x.png"
+          sips -z 120 120 "$APP_DIR/AppIcon60x60@3x.png" --out "$APP_DIR/AppIcon60x60@2x.png" >/dev/null
+          file "$APP_DIR/AppIcon60x60@3x.png"
+          file "$APP_DIR/AppIcon60x60@2x.png"
+
           /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable CarDSP" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleName CarDSP" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleDevelopmentRegion en" "$APP_DIR/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION%%-*}" "$APP_DIR/Info.plist"
+
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleIcons" "$APP_DIR/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleIconFiles" "$APP_DIR/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons dict" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon dict" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles array" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles:0 string AppIcon60x60" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIconFiles array" "$APP_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIconFiles:0 string AppIcon60x60" "$APP_DIR/Info.plist"
 
           if grep -q '\$(' "$APP_DIR/Info.plist"; then
             echo "Unresolved Info.plist build-setting placeholder detected"
@@ -232,7 +247,7 @@ jobs:
               --target "$GITHUB_SHA" \
               --title "CarDSP ${VERSION}" \
               --prerelease \
-              --notes "CarDSP alpha test release. Includes an unsigned ARM64 iPhone IPA. When Apple signing secrets are configured, the release also includes a device-provisioned signed IPA."
+              --notes "CarDSP alpha test release. Includes the CarDSP app icon and an unsigned ARM64 iPhone IPA. When Apple signing secrets are configured, the release also includes a device-provisioned signed IPA."
           fi
 
       - name: Clean up signing keychain
