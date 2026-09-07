@@ -16,6 +16,7 @@ This is an early testing release. GitHub Actions builds the ARM64 iPhone applica
 - Added optional GitHub Actions Apple certificate/provisioning support for producing a signed IPA.
 - Corrected macOS runner Base64 decoding for the app icon and signing assets.
 - Versioned this build as `0.1.0-alpha.2` without replacing alpha.1.
+- Detailed release notes: [`CHANGELOG_ALPHA2.md`](CHANGELOG_ALPHA2.md).
 
 ### Alpha testing goals
 
@@ -120,7 +121,8 @@ Never commit Apple passwords, certificate private keys, `.p12` passwords, keycha
 - App icon source: [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64)
 - IPA/signing workflow: [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml)
 - Version: [`VERSION`](VERSION)
-- Development history: [`CHANGELOG.md`](CHANGELOG.md)
+- Full development history: [`CHANGELOG.md`](CHANGELOG.md)
+- Alpha.2 release changelog: [`CHANGELOG_ALPHA2.md`](CHANGELOG_ALPHA2.md)
 
 ## Xcode build checklist
 
