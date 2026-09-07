@@ -1,0 +1,110 @@
+name: Documentation Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - VERSION
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Synchronize release documentation
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          import subprocess
+
+          version = Path("VERSION").read_text().strip()
+          readme_path = Path("README.md")
+          changelog_path = Path("CHANGELOG.md")
+
+          readme = readme_path.read_text()
+          readme = re.sub(
+              r"\*\*CarDSP v[^*]+\*\* — current install/test alpha\.",
+              f"**CarDSP v{version}** — current install/test alpha.",
+              readme,
+              count=1,
+          )
+          readme = re.sub(
+              r"CarDSP-[0-9A-Za-z.\-]+-unsigned\.ipa",
+              f"CarDSP-{version}-unsigned.ipa",
+              readme,
+          )
+          readme = re.sub(
+              r"CarDSP-[0-9A-Za-z.\-]+-signed\.ipa",
+              f"CarDSP-{version}-signed.ipa",
+              readme,
+          )
+          readme_path.write_text(readme)
+
+          changelog = changelog_path.read_text()
+          heading = f"## {version}"
+          if heading not in changelog:
+              try:
+                  previous_tag = subprocess.check_output(
+                      ["git", "describe", "--tags", "--abbrev=0", "HEAD^"],
+                      text=True,
+                      stderr=subprocess.DEVNULL,
+                  ).strip()
+                  commit_range = f"{previous_tag}..HEAD"
+              except subprocess.CalledProcessError:
+                  commit_range = "HEAD~20..HEAD"
+
+              try:
+                  log = subprocess.check_output(
+                      ["git", "log", commit_range, "--pretty=format:%h%x09%s"],
+                      text=True,
+                  ).strip()
+              except subprocess.CalledProcessError:
+                  log = ""
+
+              bullets = []
+              for line in log.splitlines():
+                  if not line.strip():
+                      continue
+                  sha, _, subject = line.partition("\t")
+                  if "documentation sync" in subject.lower():
+                      continue
+                  bullets.append(f"- `{sha}` — {subject}")
+
+              if not bullets:
+                  bullets = ["- Release metadata synchronized from `VERSION`."]
+
+              section = (
+                  f"\n## {version}\n\n"
+                  "### Automatically collected changes\n\n"
+                  + "\n".join(bullets)
+                  + "\n"
+              )
+
+              marker = "\n## "
+              first_release = changelog.find(marker)
+              if first_release >= 0:
+                  changelog = changelog[:first_release] + section + changelog[first_release:]
+              else:
+                  changelog += section
+              changelog_path.write_text(changelog)
+
+      - name: Commit synchronized documentation
+        run: |
+          if git diff --quiet -- README.md CHANGELOG.md; then
+            echo "Documentation already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md CHANGELOG.md
+          git commit -m "Sync documentation for $(cat VERSION)"
+          git push
