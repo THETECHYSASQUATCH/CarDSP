@@ -74,6 +74,29 @@ final class AudioSessionController {
 #endif
     }
 
+    /// Stable-enough local key for remembering a DSP profile for the currently
+    /// selected output. It is never transmitted and contains only the route names/types
+    /// reported to this app by AVAudioSession.
+    var currentRouteProfileKey: String {
+#if os(iOS) || os(tvOS) || os(watchOS)
+        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+        guard !outputs.isEmpty else { return "no-output" }
+        return outputs.map { "\($0.portType.rawValue)|\($0.portName)" }.joined(separator: "+")
+#else
+        return "macOS-test-host"
+#endif
+    }
+
+    var currentRouteProfileName: String {
+#if os(iOS) || os(tvOS) || os(watchOS)
+        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+        guard !outputs.isEmpty else { return "No Audio Output" }
+        return outputs.map(\.portName).joined(separator: " + ")
+#else
+        return "macOS Test Host"
+#endif
+    }
+
     var currentSampleRateDescription: String {
 #if os(iOS) || os(tvOS) || os(watchOS)
         let rate = AVAudioSession.sharedInstance().sampleRate
