@@ -4,33 +4,34 @@ Real-time DSP foundation and iPhone car-audio EQ application.
 
 ## Current release
 
-**CarDSP v0.1.0-alpha.3** — current install/test alpha.
+**CarDSP v0.1.0-alpha.6** — current install/test alpha.
 
 This is an early testing release. GitHub Actions builds the ARM64 iPhone application, assembles a versioned IPA, embeds the CarDSP app icon, and publishes an alpha prerelease. The workflow always produces an unsigned IPA and can additionally produce a signed/device-provisioned IPA when valid Apple signing secrets are configured.
 
-### Alpha.3 changes
+### Alpha.6 highlights
 
-- Added a dedicated **Audio Output** status panel to the Player tab.
-- Shows the active output type, detailed AVAudioSession route, current sample rate, and DSP engine state.
-- Added manual **Refresh Audio Route** control.
-- Added readable detection labels for Lightning-to-AUX, USB-C-to-AUX, wired headphones, line-out, USB audio interfaces, Bluetooth A2DP/HFP, AirPlay, and iPhone speaker/receiver routes.
-- Keeps iOS in control of the physical output route instead of forcing Bluetooth.
-- Updated privacy usage descriptions to clearly explain Apple Music, microphone, and Bluetooth access.
-- CarDSP does not request App Tracking Transparency permission and is not intended to collect advertising, tracking, or profiling data.
-- Detailed release notes: [`CHANGELOG_ALPHA3.md`](CHANGELOG_ALPHA3.md).
+- Automatic audio-route monitoring and live route/status refresh.
+- Live sample-rate, channel-count, peak dBFS, and clipping-status display.
+- Signal Path dashboard and digital-headroom protection.
+- Safe Preamp compensation for positive EQ boosts.
+- Local per-output DSP profiles with automatic recall.
+- RTA/Auto-EQ target curves: Flat, Car SQ, Bass Lift, Warm, and Reference.
+- Adjustable Auto-EQ correction strength.
+- Wired Lightning-to-AUX, USB-C-to-AUX, USB audio, line-out, Bluetooth, and AirPlay route support.
+- Privacy-first design with local settings storage and no intentional analytics or tracking.
+- Full release history is maintained in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Alpha testing goals
 
-- Verify the app installs and launches on a physical iPhone.
-- Verify the application icon appears correctly on iOS.
-- Verify the Audio Output panel correctly identifies Bluetooth and wired routes.
-- Verify Lightning-to-AUX and USB-C-to-AUX adapters report a valid audio route.
-- Verify compatible USB audio interfaces report as USB audio.
-- Verify sample-rate reporting while switching outputs.
-- Verify microphone permission and RTA/analyzer operation.
-- Verify EQ, filters, presets, limiter, compressor, time alignment, and polarity controls.
-- Test Apple Music/MusicKit authorization and determine which capabilities are available with the selected Apple Developer team.
-- Identify device-only crashes, signing issues, entitlement issues, and audio-routing limitations.
+- Verify installation and launch on a physical iPhone.
+- Verify route identification and automatic updates while switching Bluetooth/wired outputs.
+- Verify Lightning-to-AUX and USB-C-to-AUX adapters report valid routes.
+- Verify compatible USB audio interfaces and sample rates.
+- Verify live peak/clipping meter behavior for CarDSP-owned audio.
+- Verify per-output profile save, recall, auto-recall, and delete behavior.
+- Verify RTA target curves and Auto-EQ correction strength.
+- Verify EQ, filters, limiter, compressor, time alignment, polarity, presets, and Safe Preamp.
+- Test Apple Music/MusicKit authorization and device-only behavior.
 
 > **Alpha warning:** CarDSP is under active development. Do not rely on this build for hearing protection, speaker protection, or guaranteed output-level limiting.
 
@@ -44,7 +45,7 @@ CarDSP is intended to help audiophiles and music lovers tune and understand thei
 - Apple Music access is used for music authorization/playback features.
 - Microphone access is used for user-requested RTA and acoustic measurement features.
 - Bluetooth access is used for audio routing/device compatibility, not location or behavioral tracking.
-- DSP presets/configuration may be stored locally on the device for app functionality.
+- DSP presets, configuration, and output-route profiles are stored locally on the device.
 
 Any future network, cloud, analytics, crash-reporting, account, or synchronization feature should be reviewed against this privacy goal before being added.
 
@@ -52,24 +53,28 @@ Any future network, cloud, analytics, crash-reporting, account, or synchronizati
 
 - 31-band parametric/graphic-style EQ using cascaded biquads
 - Stereo Float32 in-place processing
-- High-pass filter and subsonic filtering
-- Independent subwoofer processing bus with subsonic + LPF
-- Master gain
-- Soft limiter
-- Compressor stage with threshold and ratio control
+- High-pass, subsonic, and low-pass filtering
+- Independent subwoofer processing bus
+- Master gain, soft limiter, and compressor
 - Time alignment and phase/polarity support
 - DSP configuration and preset persistence
-- Pink noise and sine sweep generation helpers
+- Local per-output DSP profile storage and automatic recall
+- Signal Path and digital-headroom dashboard
+- Safe Preamp compensation
+- Live app-owned audio peak/clipping meter
+- Pink noise and sine/sweep generation helpers
+- Microphone-driven RTA/analyzer
+- RTA target curves and conservative Auto-EQ assistance
 - AVAudioSession Bluetooth and wired route support
-- Audio Output route/sample-rate status UI
+- Automatic route-change monitoring
 - Lightning/USB-C AUX and USB audio route identification
 - MusicKit `ApplicationMusicPlayer` authorization/playback coordinator
-- Microphone-driven RTA/analyzer
 - Physical iPhone ARM64 CI build
 - Versioned unsigned IPA packaging
 - CarDSP iOS app icon packaging
 - Optional certificate/provisioning based signing in GitHub Actions
 - Automated alpha prerelease publishing
+- Automated README/changelog version synchronization
 
 ## Important architecture note
 
@@ -91,22 +96,13 @@ Supporting an output route such as Bluetooth, Lightning-to-AUX, USB-C-to-AUX, or
 - Vocal
 - Rock
 
-## Feature coverage
+## RTA / Auto-EQ targets
 
-- 31-band EQ with real-time gain adjustment
-- High-pass filter control
-- Subsonic filter control
-- Low-pass filter control
-- Master gain control
-- Limiter threshold and enable/disable toggle
-- Compressor threshold and ratio controls
-- Time alignment control
-- Polarity invert control
-- Built-in EQ presets
-- Microphone-based RTA analysis
-- MusicKit playback authorization
-- Bluetooth, Lightning/USB-C AUX, line-out, AirPlay, and USB audio route reporting
-- Current sample-rate display
+- Flat
+- Car SQ
+- Bass Lift
+- Warm
+- Reference
 
 ## CI / build status
 
@@ -114,28 +110,19 @@ The repository uses separate GitHub Actions workflows for:
 
 - **DSP Core Tests** — builds and tests the reusable DSP core on macOS.
 - **iOS Simulator Build** — verifies the iOS application compiles for the simulator.
-- **iOS IPA** — builds the physical-device ARM64 executable, manually assembles `CarDSP.app`, embeds the app icon, packages the versioned unsigned IPA, optionally signs the app when Apple signing assets are configured, uploads artifacts, and publishes the alpha release.
+- **iOS IPA** — builds the physical-device ARM64 executable, assembles `CarDSP.app`, embeds the app icon, packages the versioned unsigned IPA, optionally signs when Apple signing assets are configured, uploads artifacts, and publishes the alpha release.
+- **Documentation Sync** — runs when `VERSION` changes and synchronizes the current version in README/CHANGELOG release metadata.
 
-The IPA workflow lives at [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml). The icon source is stored at [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64), and release versioning is stored in [`VERSION`](VERSION).
-
-Alpha releases use semantic prerelease numbering such as `0.1.0-alpha.1`, `0.1.0-alpha.2`, `0.1.0-alpha.3`, and so on.
+The IPA workflow lives at [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml). Documentation synchronization lives at [`.github/workflows/docs-sync.yml`](.github/workflows/docs-sync.yml). The icon source is [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64), and release versioning is stored in [`VERSION`](VERSION).
 
 ## IPA outputs
 
 For the current version the pipeline produces:
 
-- `CarDSP-0.1.0-alpha.3-unsigned.ipa`
-- `CarDSP-0.1.0-alpha.3-signed.ipa` when all required Apple signing secrets are available.
+- `CarDSP-0.1.0-alpha.6-unsigned.ipa`
+- `CarDSP-0.1.0-alpha.6-signed.ipa` when all required Apple signing secrets are available.
 
-The signed path expects a valid Apple code-signing `.p12` certificate/private key and a matching provisioning profile. Signing credentials belong in GitHub Actions secrets, never in source control.
-
-## Installing an alpha IPA
-
-An unsigned IPA cannot be installed directly as a normally provisioned iOS application. It must first be signed/re-signed with an Apple development identity and a provisioning profile appropriate for the iPhone and bundle identifier.
-
-When the GitHub Actions signing secrets are configured correctly, the workflow can perform that signing on its macOS runner and publish the signed IPA alongside the unsigned build. Free Personal Team provisioning is temporary and may require periodic re-signing/reinstallation.
-
-Never commit Apple passwords, certificate private keys, `.p12` passwords, keychain passwords, provisioning credentials, or signing secrets to this repository.
+An unsigned IPA must be signed/re-signed with a valid Apple development identity and matching provisioning profile before normal installation on a stock iPhone. Signing credentials belong in GitHub Actions secrets, never in source control.
 
 ## Bundle and signing references
 
@@ -143,24 +130,10 @@ Never commit Apple passwords, certificate private keys, `.p12` passwords, keycha
 - App metadata: [`Sources/CarDSPApp/Info.plist`](Sources/CarDSPApp/Info.plist)
 - App icon source: [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64)
 - IPA/signing workflow: [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml)
+- Docs workflow: [`.github/workflows/docs-sync.yml`](.github/workflows/docs-sync.yml)
 - Version: [`VERSION`](VERSION)
-- Full development history: [`CHANGELOG.md`](CHANGELOG.md)
-- Alpha.2 release changelog: [`CHANGELOG_ALPHA2.md`](CHANGELOG_ALPHA2.md)
-- Alpha.3 release changelog: [`CHANGELOG_ALPHA3.md`](CHANGELOG_ALPHA3.md)
-
-## Xcode build checklist
-
-1. Open the project/package in Xcode on macOS.
-2. Select the app target and an iPhone simulator or connected iPhone.
-3. Select a valid Apple Developer team for signing.
-4. Add required capabilities/entitlements, including MusicKit where available to the selected team.
-5. Confirm privacy descriptions in [`Sources/CarDSPApp/Info.plist`](Sources/CarDSPApp/Info.plist): `NSAppleMusicUsageDescription`, `NSMicrophoneUsageDescription`, and `NSBluetoothAlwaysUsageDescription`.
-6. Add Background Modes / Audio if background playback is required.
-7. Build and launch the app.
-8. Verify Player, EQ, and Analyzer tabs.
-9. Verify Audio Output route/type/sample-rate reporting.
-10. Test Apple Music authorization, audio routing, presets, DSP controls, and analyzer access.
+- Full release/development history: [`CHANGELOG.md`](CHANGELOG.md)
 
 ## Windows testing
 
-The Swift/iOS source requires Apple/Xcode tooling to compile and Apple tooling to perform native iOS code signing. GitHub Actions supplies the macOS/Xcode environment, allowing development from Windows while the cloud runner builds and, when valid signing assets are supplied, signs the IPA. The resulting signed/device-provisioned IPA can then be transferred to Windows for installation/testing on the Developer Mode iPhone.
+The Swift/iOS source requires Apple/Xcode tooling to compile and Apple tooling to perform native iOS code signing. GitHub Actions supplies the macOS/Xcode environment, allowing development from Windows while the cloud runner builds and, when valid signing assets are supplied, signs the IPA.
