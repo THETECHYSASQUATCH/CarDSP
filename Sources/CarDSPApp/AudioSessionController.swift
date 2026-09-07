@@ -7,15 +7,14 @@ final class AudioSessionController {
 
 #if os(iOS) || os(tvOS) || os(watchOS)
     static let routeChangeNotification = AVAudioSession.routeChangeNotification
+#elseif os(macOS)
+    static let routeChangeNotification = Notification.Name("CarDSP.AudioRouteChange")
 #else
     static let routeChangeNotification = Notification.Name("CarDSP.AudioRouteChange")
 #endif
 
     private init() {}
 
-    /// Playback uses the system-selected output route. This intentionally does not
-    /// force Bluetooth so iOS can use wired Lightning/USB-C adapters, USB audio
-    /// interfaces, headphones, line-out/AUX adapters, AirPlay, or Bluetooth A2DP.
     func configureForPlayback() throws {
 #if os(iOS) || os(tvOS) || os(watchOS)
         let session = AVAudioSession.sharedInstance()
@@ -25,8 +24,6 @@ final class AudioSessionController {
 #endif
     }
 
-    /// Measurement keeps input available for the RTA while allowing iOS to choose
-    /// the connected output route, including Lightning/USB-C wired audio and Bluetooth.
     func configureForMeasurement() throws {
 #if os(iOS) || os(tvOS) || os(watchOS)
         let session = AVAudioSession.sharedInstance()
@@ -48,7 +45,6 @@ final class AudioSessionController {
             let raw = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
             let reason = AVAudioSession.RouteChangeReason(rawValue: raw)
         else { return "Audio route changed" }
-
         switch reason {
         case .newDeviceAvailable: return "New audio device connected"
         case .oldDeviceUnavailable: return "Audio device disconnected"
@@ -60,6 +56,8 @@ final class AudioSessionController {
         case .unknown: return "Audio route changed"
         @unknown default: return "Audio route changed"
         }
+#elseif os(macOS)
+        return "macOS audio device configuration changed"
 #else
         return "Audio route changed"
 #endif
@@ -69,21 +67,22 @@ final class AudioSessionController {
 #if os(iOS) || os(tvOS) || os(watchOS)
         let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
         return outputs.map { "\($0.portName) (\($0.portType.rawValue))" }.joined(separator: ", ")
+#elseif os(macOS)
+        return "System-selected Core Audio output"
 #else
-        return "Audio route unavailable on macOS test host"
+        return "Audio route unavailable"
 #endif
     }
 
-    /// Stable-enough local key for remembering a DSP profile for the currently
-    /// selected output. It is never transmitted and contains only the route names/types
-    /// reported to this app by AVAudioSession.
     var currentRouteProfileKey: String {
 #if os(iOS) || os(tvOS) || os(watchOS)
         let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
         guard !outputs.isEmpty else { return "no-output" }
         return outputs.map { "\($0.portType.rawValue)|\($0.portName)" }.joined(separator: "+")
+#elseif os(macOS)
+        return "macos-default-output"
 #else
-        return "macOS-test-host"
+        return "unknown-output"
 #endif
     }
 
@@ -92,18 +91,18 @@ final class AudioSessionController {
         let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
         guard !outputs.isEmpty else { return "No Audio Output" }
         return outputs.map(\.portName).joined(separator: " + ")
+#elseif os(macOS)
+        return "macOS Default Output"
 #else
-        return "macOS Test Host"
+        return "Audio Output"
 #endif
     }
 
     var currentSampleRateDescription: String {
 #if os(iOS) || os(tvOS) || os(watchOS)
-        let rate = AVAudioSession.sharedInstance().sampleRate
-        if rate >= 1_000 {
-            return String(format: "%.1f kHz", rate / 1_000)
-        }
-        return String(format: "%.0f Hz", rate)
+        return formatSampleRate(AVAudioSession.sharedInstance().sampleRate)
+#elseif os(macOS)
+        return "Core Audio managed"
 #else
         return "Unavailable"
 #endif
@@ -115,42 +114,39 @@ final class AudioSessionController {
         if channels == 1 { return "Mono" }
         if channels == 2 { return "Stereo" }
         return channels > 0 ? "\(channels) channels" : "Unavailable"
+#elseif os(macOS)
+        return "Determined by output device"
 #else
         return "Unavailable"
 #endif
     }
 
-    /// Human-readable description for common iPhone audio outputs. Wired routes are
-    /// handled by AVAudioSession/iOS and require no private accessory APIs.
     var currentOutputTypeDescription: String {
 #if os(iOS) || os(tvOS) || os(watchOS)
         let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
         guard !outputs.isEmpty else { return "No audio output" }
-
         return outputs.map { output in
             switch output.portType {
-            case .headphones:
-                return "Wired headphones / Lightning or USB-C to AUX"
-            case .usbAudio:
-                return "USB audio / USB-C audio interface or adapter"
-            case .lineOut:
-                return "Wired line out / AUX"
-            case .bluetoothA2DP:
-                return "Bluetooth high-quality audio (A2DP)"
-            case .bluetoothHFP:
-                return "Bluetooth hands-free audio"
-            case .airPlay:
-                return "AirPlay"
-            case .builtInSpeaker:
-                return "iPhone speaker"
-            case .builtInReceiver:
-                return "iPhone receiver"
-            default:
-                return "\(output.portName) (\(output.portType.rawValue))"
+            case .headphones: return "Wired headphones / Lightning or USB-C to AUX"
+            case .usbAudio: return "USB audio / USB-C audio interface or adapter"
+            case .lineOut: return "Wired line out / AUX"
+            case .bluetoothA2DP: return "Bluetooth high-quality audio (A2DP)"
+            case .bluetoothHFP: return "Bluetooth hands-free audio"
+            case .airPlay: return "AirPlay"
+            case .builtInSpeaker: return "iPhone speaker"
+            case .builtInReceiver: return "iPhone receiver"
+            default: return "\(output.portName) (\(output.portType.rawValue))"
             }
         }.joined(separator: ", ")
+#elseif os(macOS)
+        return "macOS Core Audio output"
 #else
-        return "Audio output unavailable on macOS test host"
+        return "Audio output unavailable"
 #endif
+    }
+
+    private func formatSampleRate(_ rate: Double) -> String {
+        if rate >= 1_000 { return String(format: "%.1f kHz", rate / 1_000) }
+        return String(format: "%.0f Hz", rate)
     }
 }
