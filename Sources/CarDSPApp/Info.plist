@@ -31,11 +31,13 @@
     <array>
         <string>UIInterfaceOrientationPortrait</string>
     </array>
+
+    <!-- CarDSP does not request App Tracking Transparency permission because it does not track users. -->
     <key>NSAppleMusicUsageDescription</key>
-    <string>This app uses Apple Music to play audio and process it with the car DSP engine.</string>
+    <string>CarDSP requests access to your Apple Music library and playback so you can choose and play your music while using the app's audiophile DSP, EQ, and audio-analysis tools. CarDSP does not use your music activity for advertising, tracking, or user profiling.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>This app uses the microphone for real-time audio analysis.</string>
+    <string>CarDSP uses the microphone only when you use audio measurement or real-time analyzer features, so it can measure the sound in your vehicle or listening environment and help you tune your system. Microphone audio is processed for these features and is not used for advertising or user tracking.</string>
     <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>This app uses Bluetooth audio routing for car audio devices.</string>
+    <string>CarDSP uses Bluetooth audio access to identify and work with compatible Bluetooth audio routes, such as a vehicle stereo, headphones, speakers, or audio receiver. Bluetooth access is used for audio routing and is not used to track your location or activity.</string>
 </dict>
 </plist>
