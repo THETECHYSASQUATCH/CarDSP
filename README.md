@@ -4,18 +4,28 @@ Real-time DSP foundation and iPhone car-audio EQ application.
 
 ## Current release
 
-**CarDSP v0.1.0-alpha.1** — first installable alpha build.
+**CarDSP v0.1.0-alpha.2** — current install/test alpha.
 
-This is an early testing release. The iPhone ARM64 application and unsigned IPA are built by GitHub Actions. The IPA must be signed for your Apple Developer team before installation on a physical iPhone.
+This is an early testing release. GitHub Actions builds the ARM64 iPhone application, assembles a versioned IPA, embeds the CarDSP app icon, and publishes an alpha prerelease. The workflow always produces an unsigned IPA and can additionally produce a signed/device-provisioned IPA when valid Apple signing secrets are configured.
+
+### Alpha.2 changes
+
+- Added the CarDSP application icon to IPA builds.
+- Generates the required 180×180 and 120×120 iPhone icon files during bundle assembly.
+- Adds `CFBundleIcons`/`CFBundleIconFiles` metadata to the packaged `Info.plist`.
+- Added optional GitHub Actions Apple certificate/provisioning support for producing a signed IPA.
+- Corrected macOS runner Base64 decoding for the app icon and signing assets.
+- Versioned this build as `0.1.0-alpha.2` without replacing alpha.1.
 
 ### Alpha testing goals
 
-- Verify the app installs and launches on a physical iPhone
-- Verify microphone permission and RTA/analyzer operation
-- Verify Bluetooth audio route detection/configuration
-- Verify EQ, filters, presets, limiter, compressor, time alignment, and polarity controls
-- Test Apple Music/MusicKit authorization and determine which capabilities are available with the selected Apple Developer team
-- Identify device-only crashes, signing issues, entitlement issues, and audio-routing limitations
+- Verify the app installs and launches on a physical iPhone.
+- Verify the new application icon appears correctly on iOS.
+- Verify microphone permission and RTA/analyzer operation.
+- Verify Bluetooth audio route detection/configuration.
+- Verify EQ, filters, presets, limiter, compressor, time alignment, and polarity controls.
+- Test Apple Music/MusicKit authorization and determine which capabilities are available with the selected Apple Developer team.
+- Identify device-only crashes, signing issues, entitlement issues, and audio-routing limitations.
 
 > **Alpha warning:** CarDSP is under active development. Do not rely on this build for hearing protection, speaker protection, or guaranteed output-level limiting.
 
@@ -33,8 +43,12 @@ This is an early testing release. The iPhone ARM64 application and unsigned IPA 
 - Pink noise and sine sweep generation helpers
 - AVAudioSession Bluetooth route configuration
 - MusicKit `ApplicationMusicPlayer` authorization/playback coordinator
+- Microphone-driven RTA/analyzer
 - Physical iPhone ARM64 CI build
-- Unsigned IPA packaging for sideload testing
+- Versioned unsigned IPA packaging
+- CarDSP iOS app icon packaging
+- Optional certificate/provisioning based signing in GitHub Actions
+- Automated alpha prerelease publishing
 
 ## Important architecture note
 
@@ -74,17 +88,39 @@ MusicKit playback and an AVAudioEngine render graph are separate concerns on iOS
 
 The repository uses separate GitHub Actions workflows for:
 
-- **DSP Core Tests** — builds and tests the reusable DSP core on macOS
-- **iOS Simulator Build** — verifies the iOS application compiles for the simulator
-- **Unsigned iOS IPA** — builds the physical-device ARM64 executable, assembles `CarDSP.app`, and packages `CarDSP-unsigned.ipa`
+- **DSP Core Tests** — builds and tests the reusable DSP core on macOS.
+- **iOS Simulator Build** — verifies the iOS application compiles for the simulator.
+- **iOS IPA** — builds the physical-device ARM64 executable, manually assembles `CarDSP.app`, embeds the app icon, packages the versioned unsigned IPA, optionally signs the app when Apple signing assets are configured, uploads artifacts, and publishes the alpha release.
 
-Release versioning is stored in [`VERSION`](VERSION). Alpha releases use semantic prerelease numbering such as `0.1.0-alpha.1`, `0.1.0-alpha.2`, and so on.
+The IPA workflow lives at [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml). The icon source is stored at [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64), and release versioning is stored in [`VERSION`](VERSION).
+
+Alpha releases use semantic prerelease numbering such as `0.1.0-alpha.1`, `0.1.0-alpha.2`, and so on.
+
+## IPA outputs
+
+For the current version the pipeline produces:
+
+- `CarDSP-0.1.0-alpha.2-unsigned.ipa`
+- `CarDSP-0.1.0-alpha.2-signed.ipa` when all required Apple signing secrets are available.
+
+The signed path expects a valid Apple code-signing `.p12` certificate/private key and a matching provisioning profile. Signing credentials belong in GitHub Actions secrets, never in source control.
 
 ## Installing an alpha IPA
 
-The GitHub release IPA is **unsigned**. Before installing it on an iPhone, it must be signed/re-signed with an Apple development identity and provisioning profile appropriate for that device and bundle identifier.
+An unsigned IPA cannot be installed directly as a normally provisioned iOS application. It must first be signed/re-signed with an Apple development identity and a provisioning profile appropriate for the iPhone and bundle identifier.
 
-For free Personal Team testing, provisioning is temporary and the app may need periodic re-signing. Never commit Apple passwords, certificate private keys, `.p12` passwords, or provisioning credentials to this repository.
+When the GitHub Actions signing secrets are configured correctly, the workflow can perform that signing on its macOS runner and publish the signed IPA alongside the unsigned build. Free Personal Team provisioning is temporary and may require periodic re-signing/reinstallation.
+
+Never commit Apple passwords, certificate private keys, `.p12` passwords, keychain passwords, provisioning credentials, or signing secrets to this repository.
+
+## Bundle and signing references
+
+- Bundle identifier: `com.thetechysasquatch.CarDSP`
+- App metadata: [`Sources/CarDSPApp/Info.plist`](Sources/CarDSPApp/Info.plist)
+- App icon source: [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64)
+- IPA/signing workflow: [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml)
+- Version: [`VERSION`](VERSION)
+- Development history: [`CHANGELOG.md`](CHANGELOG.md)
 
 ## Xcode build checklist
 
@@ -92,10 +128,7 @@ For free Personal Team testing, provisioning is temporary and the app may need p
 2. Select the app target and an iPhone simulator or connected iPhone.
 3. Select a valid Apple Developer team for signing.
 4. Add required capabilities/entitlements, including MusicKit where available to the selected team.
-5. Confirm privacy descriptions in [`Sources/CarDSPApp/Info.plist`](Sources/CarDSPApp/Info.plist):
-   - `NSAppleMusicUsageDescription`
-   - `NSMicrophoneUsageDescription`
-   - `NSBluetoothAlwaysUsageDescription`
+5. Confirm privacy descriptions in [`Sources/CarDSPApp/Info.plist`](Sources/CarDSPApp/Info.plist): `NSAppleMusicUsageDescription`, `NSMicrophoneUsageDescription`, and `NSBluetoothAlwaysUsageDescription`.
 6. Add Background Modes / Audio if background playback is required.
 7. Build and launch the app.
 8. Verify Player, EQ, and Analyzer tabs.
@@ -103,4 +136,4 @@ For free Personal Team testing, provisioning is temporary and the app may need p
 
 ## Windows testing
 
-The Swift/iOS source itself requires Apple/Xcode tooling to compile for iOS. GitHub Actions provides the macOS/Xcode build environment so Windows users can obtain an unsigned IPA without owning a Mac. The resulting IPA still requires valid Apple signing/provisioning before installation on an iPhone.
+The Swift/iOS source requires Apple/Xcode tooling to compile and Apple tooling to perform native iOS code signing. GitHub Actions supplies the macOS/Xcode environment, allowing development from Windows while the cloud runner builds and, when valid signing assets are supplied, signs the IPA. The resulting signed/device-provisioned IPA can then be transferred to Windows for installation/testing on the Developer Mode iPhone.
