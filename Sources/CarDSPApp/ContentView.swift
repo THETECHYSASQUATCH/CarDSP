@@ -52,8 +52,10 @@ struct ContentView: View {
     @StateObject private var micAnalyzer = MicrophoneAnalyzer()
     @StateObject private var music = MusicPlaybackCoordinator()
     @StateObject private var audio = AudioEngineController()
+    @StateObject private var outputProfiles = OutputProfileStore()
     @State private var routeRefreshToken = UUID()
     @State private var lastRouteChange = "Monitoring audio route"
+    @State private var profileStatus = "No output profile loaded"
 
     var body: some View {
         TabView {
@@ -106,6 +108,50 @@ struct ContentView: View {
                                     .foregroundStyle(.secondary)
                             }
                             .id(routeRefreshToken)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        GroupBox("Output DSP Profile") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text("Current Output")
+                                    Spacer()
+                                    Text(AudioSessionController.shared.currentRouteProfileName)
+                                        .multilineTextAlignment(.trailing)
+                                }
+
+                                Toggle("Auto-load saved profile when output connects", isOn: $outputProfiles.autoLoadEnabled)
+
+                                HStack {
+                                    Button("Save Current Tuning") {
+                                        saveCurrentOutputProfile()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+
+                                    Button("Load Saved") {
+                                        loadCurrentOutputProfile(showMissingStatus: true)
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
+
+                                if outputProfiles.profile(for: AudioSessionController.shared.currentRouteProfileKey) != nil {
+                                    Button("Delete Saved Profile", role: .destructive) {
+                                        let key = AudioSessionController.shared.currentRouteProfileKey
+                                        outputProfiles.delete(routeKey: key)
+                                        profileStatus = "Saved profile deleted for this output"
+                                    }
+                                    .font(.caption)
+                                }
+
+                                Text(profileStatus)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                Text("Profiles stay on this device and contain only the DSP configuration associated with the audio route reported by iOS.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.footnote)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
@@ -188,16 +234,43 @@ struct ContentView: View {
             EQScreen(viewModel: viewModel)
                 .tabItem { Label("EQ", systemImage: "slider.horizontal.3") }
 
-            MicrophoneAnalyzerView(analyzer: micAnalyzer)
+            MicrophoneAnalyzerView(analyzer: micAnalyzer, viewModel: viewModel)
                 .tabItem { Label("Analyzer", systemImage: "waveform") }
         }
         .task {
             try? AudioSessionController.shared.configureForPlayback()
             routeRefreshToken = UUID()
+            if outputProfiles.autoLoadEnabled {
+                loadCurrentOutputProfile(showMissingStatus: false)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: AudioSessionController.routeChangeNotification)) { notification in
             lastRouteChange = AudioSessionController.shared.routeChangeReasonDescription(notification)
             routeRefreshToken = UUID()
+            if outputProfiles.autoLoadEnabled {
+                loadCurrentOutputProfile(showMissingStatus: false)
+            }
+        }
+    }
+
+    private func saveCurrentOutputProfile() {
+        let session = AudioSessionController.shared
+        outputProfiles.saveCurrent(
+            configuration: viewModel.configuration,
+            routeKey: session.currentRouteProfileKey,
+            name: session.currentRouteProfileName
+        )
+        profileStatus = "Saved tuning for \(session.currentRouteProfileName)"
+    }
+
+    private func loadCurrentOutputProfile(showMissingStatus: Bool) {
+        let session = AudioSessionController.shared
+        let key = session.currentRouteProfileKey
+        if let profile = outputProfiles.profile(for: key) {
+            viewModel.apply(profile.configuration)
+            profileStatus = "Loaded tuning for \(profile.name)"
+        } else if showMissingStatus {
+            profileStatus = "No saved profile for \(session.currentRouteProfileName)"
         }
     }
 }
