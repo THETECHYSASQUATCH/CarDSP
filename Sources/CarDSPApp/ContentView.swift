@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import CarDSPCore
 
 @MainActor
@@ -52,6 +53,7 @@ struct ContentView: View {
     @StateObject private var music = MusicPlaybackCoordinator()
     @StateObject private var audio = AudioEngineController()
     @State private var routeRefreshToken = UUID()
+    @State private var lastRouteChange = "Monitoring audio route"
 
     var body: some View {
         TabView {
@@ -67,24 +69,70 @@ struct ContentView: View {
                                 Label(AudioSessionController.shared.currentOutputTypeDescription,
                                       systemImage: "speaker.wave.2.fill")
                                     .font(.headline)
+
                                 Text(AudioSessionController.shared.currentRouteDescription)
-                                    .font(.footnote).foregroundStyle(.secondary)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+
                                 HStack {
                                     Text("Sample Rate")
                                     Spacer()
-                                    Text(AudioSessionController.shared.currentSampleRateDescription).monospacedDigit()
-                                }.font(.footnote)
+                                    Text(AudioSessionController.shared.currentSampleRateDescription)
+                                        .monospacedDigit()
+                                }
+                                .font(.footnote)
+
+                                HStack {
+                                    Text("Channels")
+                                    Spacer()
+                                    Text(AudioSessionController.shared.currentChannelCountDescription)
+                                }
+                                .font(.footnote)
+
                                 HStack {
                                     Text("DSP Engine")
                                     Spacer()
-                                    Text(audio.isRunning ? "Running" : "Stopped").fontWeight(.semibold)
-                                }.font(.footnote)
+                                    Text(audio.isRunning ? "Running" : "Stopped")
+                                        .fontWeight(.semibold)
+                                }
+                                .font(.footnote)
+
+                                Text(lastRouteChange)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
                                 Text("Supports Bluetooth, AirPlay, Lightning-to-AUX, USB-C-to-AUX, wired headphones, line-out, and compatible USB audio interfaces. iOS chooses the active physical route.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                Button("Refresh Audio Route") { routeRefreshToken = UUID() }
-                                    .buttonStyle(.bordered)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                             .id(routeRefreshToken)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        GroupBox("Live Level Meter") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text("Peak")
+                                    Spacer()
+                                    Text(String(format: "%.1f dBFS", audio.peakDBFS))
+                                        .monospacedDigit()
+                                }
+
+                                ProgressView(value: Double(max(-60, min(0, audio.peakDBFS)) + 60), total: 60)
+
+                                HStack {
+                                    Text("Clip Status")
+                                    Spacer()
+                                    Label(audio.isClipping ? "CLIPPING" : "Clean",
+                                          systemImage: audio.isClipping ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                                        .fontWeight(.semibold)
+                                }
+
+                                Text("The meter reflects CarDSP's app-owned audio engine path. It does not claim access to audio samples from unrelated iOS apps.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.footnote)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
@@ -145,6 +193,10 @@ struct ContentView: View {
         }
         .task {
             try? AudioSessionController.shared.configureForPlayback()
+            routeRefreshToken = UUID()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AudioSessionController.routeChangeNotification)) { notification in
+            lastRouteChange = AudioSessionController.shared.routeChangeReasonDescription(notification)
             routeRefreshToken = UUID()
         }
     }
