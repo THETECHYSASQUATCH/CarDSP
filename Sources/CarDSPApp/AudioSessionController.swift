@@ -44,6 +44,18 @@ final class AudioSessionController {
 #endif
     }
 
+    var currentSampleRateDescription: String {
+#if os(iOS) || os(tvOS) || os(watchOS)
+        let rate = AVAudioSession.sharedInstance().sampleRate
+        if rate >= 1_000 {
+            return String(format: "%.1f kHz", rate / 1_000)
+        }
+        return String(format: "%.0f Hz", rate)
+#else
+        return "Unavailable"
+#endif
+    }
+
     /// Human-readable description for common iPhone audio outputs. Wired routes are
     /// handled by AVAudioSession/iOS and require no private accessory APIs.
     var currentOutputTypeDescription: String {
