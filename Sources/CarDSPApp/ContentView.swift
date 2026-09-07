@@ -24,6 +24,26 @@ final class DSPViewModel: ObservableObject {
     }
 
     func resetFlat() { apply(.flat()) }
+
+    var maximumEQBoostDB: Float {
+        max(0, configuration.eq.map(\.gainDB).max() ?? 0)
+    }
+
+    var recommendedPreampDB: Float { -maximumEQBoostDB }
+
+    var estimatedHeadroomDB: Float {
+        -(maximumEQBoostDB + configuration.masterGainDB)
+    }
+
+    var headroomStatus: String {
+        if estimatedHeadroomDB >= 0 { return "Good" }
+        if estimatedHeadroomDB >= -3 { return "Caution" }
+        return "Clipping Risk"
+    }
+
+    func applySafePreamp() {
+        update { $0.masterGainDB = recommendedPreampDB }
+    }
 }
 
 struct ContentView: View {
@@ -47,37 +67,55 @@ struct ContentView: View {
                                 Label(AudioSessionController.shared.currentOutputTypeDescription,
                                       systemImage: "speaker.wave.2.fill")
                                     .font(.headline)
-
                                 Text(AudioSessionController.shared.currentRouteDescription)
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-
+                                    .font(.footnote).foregroundStyle(.secondary)
                                 HStack {
                                     Text("Sample Rate")
                                     Spacer()
-                                    Text(AudioSessionController.shared.currentSampleRateDescription)
-                                        .monospacedDigit()
-                                }
-                                .font(.footnote)
-
+                                    Text(AudioSessionController.shared.currentSampleRateDescription).monospacedDigit()
+                                }.font(.footnote)
                                 HStack {
                                     Text("DSP Engine")
                                     Spacer()
-                                    Text(audio.isRunning ? "Running" : "Stopped")
-                                        .fontWeight(.semibold)
-                                }
-                                .font(.footnote)
-
+                                    Text(audio.isRunning ? "Running" : "Stopped").fontWeight(.semibold)
+                                }.font(.footnote)
                                 Text("Supports Bluetooth, AirPlay, Lightning-to-AUX, USB-C-to-AUX, wired headphones, line-out, and compatible USB audio interfaces. iOS chooses the active physical route.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                Button("Refresh Audio Route") {
-                                    routeRefreshToken = UUID()
-                                }
-                                .buttonStyle(.bordered)
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Button("Refresh Audio Route") { routeRefreshToken = UUID() }
+                                    .buttonStyle(.bordered)
                             }
                             .id(routeRefreshToken)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        GroupBox("Signal Path") {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("App Audio Source", systemImage: "music.note")
+                                Image(systemName: "arrow.down")
+                                Text("31-band EQ → HPF \(Int(viewModel.configuration.highPassHz)) Hz → Subsonic \(Int(viewModel.configuration.subsonicHz)) Hz → LPF \(Int(viewModel.configuration.lowPassHz)) Hz")
+                                    .font(.footnote)
+                                Text("Time Alignment \(String(format: "%.1f", viewModel.configuration.timeAlignmentMs)) ms → Limiter \(viewModel.configuration.limiterEnabled ? "ON" : "OFF")")
+                                    .font(.footnote)
+                                Image(systemName: "arrow.down")
+                                Label(AudioSessionController.shared.currentOutputTypeDescription, systemImage: "cable.connector")
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        GroupBox("Headroom Protection") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack { Text("Maximum EQ Boost"); Spacer(); Text(String(format: "+%.1f dB", viewModel.maximumEQBoostDB)) }
+                                HStack { Text("Master Gain"); Spacer(); Text(String(format: "%.1f dB", viewModel.configuration.masterGainDB)) }
+                                HStack { Text("Estimated Headroom"); Spacer(); Text(String(format: "%.1f dB", viewModel.estimatedHeadroomDB)) }
+                                HStack { Text("Status"); Spacer(); Text(viewModel.headroomStatus).fontWeight(.semibold) }
+                                Text("Positive EQ boosts consume digital headroom. Safe Preamp offsets the largest boost to reduce clipping risk before the limiter.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Button("Apply Safe Preamp (\(String(format: "%.1f", viewModel.recommendedPreampDB)) dB)") {
+                                    viewModel.applySafePreamp()
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                            .font(.footnote)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
