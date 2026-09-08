@@ -6,7 +6,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <span>
+#include <numbers>
 
 namespace cardsp {
 
