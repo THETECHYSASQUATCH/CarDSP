@@ -5,12 +5,16 @@ on:
     branches: [main]
     paths:
       - 'SharedDSP/**'
+      - 'VERSION'
       - '.github/workflows/shared-dsp.yml'
   pull_request:
     paths:
       - 'SharedDSP/**'
       - '.github/workflows/shared-dsp.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   shared-dsp:
@@ -27,3 +31,57 @@ jobs:
         run: cmake --build SharedDSP/build --config Release
       - name: Test
         run: ctest --test-dir SharedDSP/build -C Release --output-on-failure
+
+  release-shared-dsp:
+    name: Publish SharedDSP package
+    needs: shared-dsp
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Package portable DSP core
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE="CarDSP-${VERSION}-SharedDSP.zip"
+          rm -rf SharedDSP/build
+          zip -r "$ARCHIVE" SharedDSP -x 'SharedDSP/build/*'
+          unzip -l "$ARCHIVE"
+
+      - name: Upload portable DSP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarDSP-${{ steps.version.outputs.version }}-SharedDSP
+          path: CarDSP-${{ steps.version.outputs.version }}-SharedDSP.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish portable DSP to alpha release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="CarDSP-${VERSION}-SharedDSP.zip"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "CarDSP ${VERSION}" \
+              --prerelease \
+              --notes "CarDSP cross-platform alpha release. Platform artifacts are attached only after their corresponding CI checks pass." || true
+          fi
+          gh release upload "$TAG" "$ARCHIVE" --clobber
