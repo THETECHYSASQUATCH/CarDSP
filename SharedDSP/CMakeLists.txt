@@ -8,7 +8,12 @@ target_compile_features(cardsp_shared INTERFACE cxx_std_20)
 option(CARDSP_BUILD_TESTS "Build portable DSP tests" ON)
 if(CARDSP_BUILD_TESTS)
     enable_testing()
+
     add_executable(cardsp_shared_smoke tests/biquad_smoke.cpp)
     target_link_libraries(cardsp_shared_smoke PRIVATE cardsp_shared)
     add_test(NAME cardsp_shared_smoke COMMAND cardsp_shared_smoke)
+
+    add_executable(cardsp_dsp_chain_smoke tests/dsp_chain_smoke.cpp)
+    target_link_libraries(cardsp_dsp_chain_smoke PRIVATE cardsp_shared)
+    add_test(NAME cardsp_dsp_chain_smoke COMMAND cardsp_dsp_chain_smoke)
 endif()
