@@ -7,6 +7,7 @@ on:
       - 'Package.swift'
       - 'Sources/**'
       - 'Tests/**'
+      - 'VERSION'
       - '.github/workflows/macos.yml'
   pull_request:
     paths:
@@ -16,16 +17,70 @@ on:
       - '.github/workflows/macos.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Read release version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
       - name: Show Swift version
         run: swift --version
+
       - name: Build CarDSP for macOS
-        run: swift build --product CarDSPApp
+        run: swift build --configuration release --product CarDSPApp
+
       - name: Test shared DSP core
         run: swift test --filter CarDSPCoreTests
+
+      - name: Package macOS build
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE="CarDSP-${VERSION}-macOS.zip"
+          mkdir -p dist/CarDSP-macOS
+          cp .build/release/CarDSPApp dist/CarDSP-macOS/CarDSP
+          chmod +x dist/CarDSP-macOS/CarDSP
+          cp README.md dist/CarDSP-macOS/README.md
+          ditto -c -k --sequesterRsrc --keepParent dist/CarDSP-macOS "$ARCHIVE"
+          unzip -l "$ARCHIVE"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarDSP-${{ steps.version.outputs.version }}-macOS
+          path: CarDSP-${{ steps.version.outputs.version }}-macOS.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish macOS build to alpha release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="CarDSP-${VERSION}-macOS.zip"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "CarDSP ${VERSION}" \
+              --prerelease \
+              --notes "CarDSP cross-platform alpha release. Platform artifacts are attached only after their corresponding CI checks pass." || true
+          fi
+          gh release upload "$TAG" "$ARCHIVE" --clobber
