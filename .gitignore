@@ -8,3 +8,6 @@ build/
 *.cpp.bak
 # Local source backups
 *.bak
+
+# Local build diagnostics
+cardsp-build-errors.log
