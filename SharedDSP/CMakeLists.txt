@@ -41,3 +41,10 @@ if(CARDSP_BUILD_TESTS)
     target_link_libraries(cardsp_dsp_chain_smoke PRIVATE cardsp_shared)
     add_test(NAME cardsp_dsp_chain_smoke COMMAND cardsp_dsp_chain_smoke)
 endif()
+
+# CarDSP portable PCM processing tool
+if(CARDSP_BUILD_TOOLS)
+    install(TARGETS cardsp_process_pcm
+        RUNTIME DESTINATION bin
+    )
+endif()

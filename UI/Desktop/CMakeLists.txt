@@ -10,6 +10,8 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(CarDSPDesktop
+    EqController.cpp
+    EqController.hpp
     main.cpp
 )
 
@@ -22,10 +24,15 @@ qt_add_qml_module(CarDSPDesktop
 
 target_link_libraries(CarDSPDesktop
     PRIVATE
+        Qt6::Core
         Qt6::Quick
         Qt6::QuickControls2
 )
 
 set_target_properties(CarDSPDesktop PROPERTIES
-    WIN32_EXECUTABLE TRUE
+    WIN32_EXECUTABLE FALSE
 )
+if(WIN32)
+    target_sources(CarDSPDesktop PRIVATE CarDSP.rc)
+endif()
+

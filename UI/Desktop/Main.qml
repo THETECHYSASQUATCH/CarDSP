@@ -15,9 +15,19 @@ ApplicationWindow {
 
     color: "#101820"
 
+    palette.window: "#101820"
+    palette.windowText: "#edf5f8"
+    palette.base: "#192530"
+    palette.alternateBase: "#243542"
+    palette.text: "#edf5f8"
+    palette.button: "#243542"
+    palette.buttonText: "#edf5f8"
+    palette.highlight: "#39d6c1"
+    palette.highlightedText: "#101820"
     property int selectedChannel: 0
     property string selectedLayout: "6.1 Active"
     property bool eqEnabled: true
+    property bool liveEqGraphInstalled: true
 
     readonly property color accent: "#39d6c1"
     readonly property color panel: "#192530"
@@ -33,6 +43,40 @@ ApplicationWindow {
         "Mono Subwoofer"
     ]
 
+    property var bandNames: [
+        "Sub-Bass - Infrasonic",
+        "Sub-Bass - Deep Rumble",
+        "Sub-Bass - Deep Bass",
+        "Sub-Bass - Bass Impact",
+        "Bass - Subwoofer Punch",
+        "Bass - Kick Drum",
+        "Bass - Bass Weight",
+        "Bass - Upper Bass",
+        "Bass - Warmth",
+        "Bass - Fullness",
+        "Low Mids - Body",
+        "Low Mids - Mud",
+        "Low Mids - Resonance",
+        "Low Mids - Boxiness",
+        "Midrange - Instrument Body",
+        "Midrange - Vocal Body",
+        "Midrange - Vocal Presence",
+        "Midrange - Vocal Clarity",
+        "Midrange - Definition",
+        "Upper Mids - Articulation",
+        "Upper Mids - Vocal Detail",
+        "Upper Mids - Presence",
+        "Upper Mids - Attack",
+        "Presence - Detail",
+        "Presence - Clarity",
+        "Treble - Brightness",
+        "Treble - Sibilance",
+        "Treble - Sparkle",
+        "Treble - Air",
+        "High Treble - Brilliance",
+        "High Treble - Airiness",
+        "High Treble - Extreme Highs"
+    ]
     property var bandFrequencies: [
         20, 25, 31.5, 40, 50, 63, 80, 100,
         125, 160, 200, 250, 315, 400, 500, 630,
@@ -44,14 +88,40 @@ ApplicationWindow {
         id: eqBands
     }
 
-    Component.onCompleted: {
-        for (let i = 0; i < 32; ++i) {
+    function refreshBands() {
+        eqBands.clear()
+
+        const source = eqController.bands
+
+        for (let i = 0; i < source.length; ++i) {
             eqBands.append({
-                frequency: bandFrequencies[i],
-                gain: 0.0,
-                q: 1.41,
-                enabled: true
+                name: source[i].name,
+                defaultName: source[i].defaultName,
+                frequency: source[i].frequency,
+                gain: source[i].gain,
+                q: source[i].q,
+                enabled: source[i].enabled,
+                type: source[i].type
             })
+        }
+
+        responseGraph.requestPaint()
+    }
+
+    Component.onCompleted: {
+        eqController.channel = selectedChannel
+        refreshBands()
+    }
+
+    Connections {
+        target: eqController
+
+        function onBandsChanged() {
+            window.refreshBands()
+        }
+
+        function onResponseChanged() {
+            responseGraph.requestPaint()
         }
     }
 
@@ -154,7 +224,7 @@ ApplicationWindow {
                     Switch {
                         text: "EQ Enabled"
                         checked: window.eqEnabled
-                        onToggled: window.eqEnabled = checked
+                        onToggled: { window.eqEnabled = checked; responseGraph.requestPaint() }
                     }
                 }
 
@@ -198,7 +268,7 @@ ApplicationWindow {
 
                         model: window.channels
 
-                        onActivated: window.selectedChannel = currentIndex
+                        onActivated: { window.selectedChannel = currentIndex; eqController.channel = currentIndex }
                     }
                 }
 
@@ -244,12 +314,19 @@ ApplicationWindow {
                             ctx.lineWidth = 3
                             ctx.beginPath()
 
-                            for (let x = 0; x <= w; x++) {
-                                let y = h / 2
+                            const response = eqController.response
 
-                                // Flat reference response until
-                                // the actual DSP response is connected.
-                                if (x === 0)
+                            for (let i = 0; i < response.length; ++i) {
+                                const frequency = response[i].frequency
+                                const gain = window.eqEnabled
+                                           ? response[i].gain : 0.0
+
+                                const x = Math.log(frequency / 20.0)
+                                          / Math.log(1000.0) * w
+
+                                const y = h / 2 - (gain / 24.0) * h
+
+                                if (i === 0)
                                     ctx.moveTo(x, y)
                                 else
                                     ctx.lineTo(x, y)
@@ -263,7 +340,7 @@ ApplicationWindow {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.margins: 12
-                        text: "Frequency Response — Flat Reference"
+                        text: "Frequency Response — Live Parametric EQ"
                         color: "#9cb2bf"
                     }
                 }
@@ -283,12 +360,13 @@ ApplicationWindow {
                     color: window.panel
 
                     ScrollView {
+                        id: eqScrollView
                         anchors.fill: parent
                         anchors.margins: 12
                         clip: true
 
                         GridLayout {
-                            width: parent.width
+                            width: Math.max(eqScrollView.availableWidth, 4 * 200 + 3 * 12)
                             columns: 4
                             columnSpacing: 12
                             rowSpacing: 12
@@ -300,7 +378,9 @@ ApplicationWindow {
                                     required property int index
 
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 155
+                                    Layout.preferredWidth: 200
+                                    Layout.minimumWidth: 180
+                                    Layout.preferredHeight: 535
                                     color: "#243542"
                                     radius: 8
 
@@ -310,28 +390,118 @@ ApplicationWindow {
                                         spacing: 5
 
                                         Label {
-                                            text: "Band " + (index + 1)
+                                            text: window.bandNames[index]
                                             color: window.accent
                                             font.bold: true
                                         }
 
+                                        RowLayout {
+                                            Layout.fillWidth: true
+
+                                            Label {
+                                                text: "Enabled"
+                                                color: window.foreground
+                                            }
+
+                                            Switch {
+                                                id: bandEnabledSwitch
+                                                checked: eqBands.get(index).enabled
+
+                                                onToggled: {
+                                                    const band = eqBands.get(index)
+                                                    eqController.setBand(
+                                                        index,
+                                                        band.frequency,
+                                                        band.gain,
+                                                        band.q,
+                                                        checked
+                                                    )
+                                                }
+                                            }
+                                        }
+
                                         Label {
-                                            text: eqBands.get(index).frequency + " Hz"
+                                            text: "Frequency (Hz)"
                                             color: window.foreground
                                         }
 
-                                        Slider {
-                                            id: gainSlider
+                                        Label {
+                                            text: "Filter Type"
+                                            color: window.foreground
+                                        }
+
+                                        Label {
+                                            text: "Custom Band Name"
+                                            color: window.foreground
+                                        }
+
+                                        TextField {
+                                            id: bandCustomNameInput
+                                            Layout.fillWidth: true
+                                            maximumLength: 64
+
+                                            text: eqBands.get(index).name
+                                            placeholderText: eqBands.get(index).defaultName
+
+                                            function saveName() {
+                                                const newName = text.trim()
+
+                                                if (newName !== eqBands.get(index).name) {
+                                                    eqController.setBandName(index, newName)
+                                                }
+                                            }
+
+                                            onAccepted: saveName()
+                                            onEditingFinished: saveName()
+                                        }
+
+                                        Button {
+                                            text: "Reset Name"
+                                            Layout.fillWidth: true
+                                            onClicked: eqController.resetBandName(index)
+                                        }
+                                        ComboBox {
+                                            id: bandFilterTypeBox
                                             Layout.fillWidth: true
 
-                                            from: -12
-                                            to: 12
-                                            stepSize: 0.5
-                                            value: eqBands.get(index).gain
+                                            model: [
+                                                "Peaking",
+                                                "Low Shelf",
+                                                "High Shelf",
+                                                "Low Pass",
+                                                "High Pass",
+                                                "Notch"
+                                            ]
 
-                                            onMoved: {
-                                                eqBands.setProperty(
-                                                    index, "gain", value
+                                            currentIndex: eqBands.get(index).type
+
+                                            onActivated: {
+                                                eqController.setBandType(index, currentIndex)
+                                            }
+                                        }
+                                        TextField {
+                                            id: bandFrequencyInput
+                                            Layout.fillWidth: true
+                                            text: String(eqBands.get(index).frequency)
+
+                                            validator: DoubleValidator {
+                                                bottom: 20
+                                                top: 20000
+                                                decimals: 1
+                                            }
+
+                                            onEditingFinished: {
+                                                if (!acceptableInput)
+                                                    return
+
+                                                const band = eqBands.get(index)
+
+                                                eqController.setBand(
+                                                    index,
+                                                    Number(text),
+                                                    band.gain,
+                                                    band.q,
+                                                    band.enabled
                                                 )
                                             }
                                         }
@@ -343,9 +513,57 @@ ApplicationWindow {
                                             color: window.foreground
                                         }
 
+                                        Slider {
+                                            id: gainSlider
+                                            Layout.fillWidth: true
+                                            from: -18
+                                            to: 18
+                                            stepSize: 0.5
+                                            value: eqBands.get(index).gain
+
+                                            onMoved: {
+                                                const band = eqBands.get(index)
+
+                                                eqController.setBand(
+                                                    index,
+                                                    band.frequency,
+                                                    value,
+                                                    band.q,
+                                                    band.enabled
+                                                )
+                                            }
+                                        }
+
                                         Label {
-                                            text: "Q: 1.41"
-                                            color: "#a7bac6"
+                                            text: "Q Factor"
+                                            color: window.foreground
+                                        }
+
+                                        TextField {
+                                            id: bandQInput
+                                            Layout.fillWidth: true
+                                            text: String(eqBands.get(index).q)
+
+                                            validator: DoubleValidator {
+                                                bottom: 0.1
+                                                top: 30
+                                                decimals: 2
+                                            }
+
+                                            onEditingFinished: {
+                                                if (!acceptableInput)
+                                                    return
+
+                                                const band = eqBands.get(index)
+
+                                                eqController.setBand(
+                                                    index,
+                                                    band.frequency,
+                                                    band.gain,
+                                                    Number(text),
+                                                    band.enabled
+                                                )
+                                            }
                                         }
                                     }
                                 }

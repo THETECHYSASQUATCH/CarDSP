@@ -1,14 +1,18 @@
+#include <QQmlContext>
+#include "EqController.hpp"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 
 int main(int argc, char *argv[])
 {
+    QQuickStyle::setStyle("Fusion");
     QGuiApplication app(argc, argv);
 
-    QQuickStyle::setStyle("Fusion");
-
     QQmlApplicationEngine engine;
+
+    EqController eqController;
+    engine.rootContext()->setContextProperty("eqController", &eqController);
     engine.loadFromModule("CarDSP", "Main");
 
     if (engine.rootObjects().isEmpty())
