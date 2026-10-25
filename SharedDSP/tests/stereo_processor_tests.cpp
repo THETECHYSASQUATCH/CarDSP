@@ -41,5 +41,47 @@ int main() {
     cardsp::StereoProcessor<1> bounded;
     require(bounded.add(cardsp::makeLowPass(48000, 1000)));
     require(!bounded.add(cardsp::makeHighPass(48000, 20)));
+    // REGRESSION: right-channel isolation
+    cardsp::StereoProcessor<> rightOnly;
+    require(rightOnly.add(cardsp::makeLowPass(48000, 2000)));
+
+    std::array<float, 128> rightImpulse{};
+    rightImpulse[1] = 1.0f;
+
+    require(rightOnly.processInterleaved(
+        rightImpulse.data(), rightImpulse.size() / 2
+    ));
+
+    bool rightProducedOutput = false;
+
+    for (std::size_t i = 0; i < rightImpulse.size(); i += 2) {
+        require(rightImpulse[i] == 0.0f);
+        if (std::abs(rightImpulse[i + 1]) > 1e-7f) {
+            rightProducedOutput = true;
+        }
+    }
+    require(rightProducedOutput);
+
+    // REGRESSION: invalid buffer must preserve filter state
+    cardsp::StereoProcessor<> reference, underTest;
+    require(reference.add(cardsp::makeLowPass(48000, 1000)));
+    require(underTest.add(cardsp::makeLowPass(48000, 1000)));
+
+    std::array<float, 8> referenceSamples{
+        1, 0, 0, 0, 0, 0, 0, 0
+    };
+    auto actualSamples = referenceSamples;
+
+    require(!underTest.processInterleaved(actualSamples.data(), 4, 1));
+    require(actualSamples == referenceSamples);
+
+    require(reference.processInterleaved(referenceSamples.data(), 4));
+    require(underTest.processInterleaved(actualSamples.data(), 4));
+
+    for (std::size_t i = 0; i < actualSamples.size(); ++i) {
+        require(std::abs(actualSamples[i] - referenceSamples[i]) < 1e-7f);
+    }
+
     std::cout << "Stereo layout, isolation, continuity, reset and validation passed\n";
 }
+
