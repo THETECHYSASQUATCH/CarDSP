@@ -1,3 +1,5 @@
+#include "Audio/MicrophoneManager.hpp"
+#include "Audio/SpectrumAnalyzer.hpp"
 #include <QQmlContext>
 #include "EqController.hpp"
 #include "PresetManager.hpp"
@@ -22,6 +24,24 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(
         "presetManager", &presetManager
     );
+    MicrophoneManager microphoneManager;
+    engine.rootContext()->setContextProperty(
+        "microphoneManager",
+        &microphoneManager
+    );
+    SpectrumAnalyzer spectrumAnalyzer;
+
+    QObject::connect(
+        &microphoneManager,
+        &MicrophoneManager::pcmAvailable,
+        &spectrumAnalyzer,
+        &SpectrumAnalyzer::processSamples
+    );
+
+    engine.rootContext()->setContextProperty(
+        "spectrumAnalyzer",
+        &spectrumAnalyzer
+    );
 
     engine.loadFromModule("CarDSP", "Main");
 
@@ -30,5 +50,6 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+
 
 

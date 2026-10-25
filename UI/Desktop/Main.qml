@@ -1,14 +1,109 @@
+import CarDSP
+import QtQuick.Window
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
 ApplicationWindow {
+    // Phase 3A.3 - Microphone capture controls
+    footer: Rectangle {
+        id: microphonePanel
+
+        height: 92
+        color: "#131e27"
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 12
+
+            Label {
+                text: "Microphone"
+                color: "white"
+                font.bold: true
+            }
+
+            ComboBox {
+                id: microphoneSelector
+
+                Layout.preferredWidth: 270
+
+                model: microphoneManager ? microphoneManager.devices : []
+                textRole: "name"
+
+                enabled: microphoneManager ? !microphoneManager.capturing : false
+
+                onActivated: function(index) {
+                    microphoneManager.stopCapture()
+                }
+            }
+
+            Button {
+                text: "Refresh"
+
+                enabled: microphoneManager ? !microphoneManager.capturing : false
+
+                onClicked: microphoneManager.refreshDevices()
+            }
+
+            Button {
+                text: "Start"
+
+                enabled: microphoneManager ? !microphoneManager.capturing : false
+                         && microphoneSelector.currentIndex >= 0
+
+                onClicked: {
+                    microphoneManager.startCapture(
+                        microphoneSelector.currentIndex
+                    )
+                }
+            }
+
+            Button {
+                text: "Stop"
+
+                enabled: microphoneManager ? microphoneManager.capturing : false
+
+                onClicked: microphoneManager.stopCapture()
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Label {
+                    text: "Input Level"
+                    color: "white"
+                }
+
+                ProgressBar {
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+                    value: microphoneManager ? microphoneManager.level : 0
+                }
+
+                Label {
+                    text: (microphoneManager && microphoneManager.lastError.length > 0)
+                          ? microphoneManager.lastError
+                          : (microphoneManager && microphoneManager.capturing)
+                            ? "Recording input..."
+                            : "Stopped"
+
+                    color: (microphoneManager && microphoneManager.lastError.length > 0)
+                           ? "#ff7777"
+                           : "#aabbcc"
+                }
+            }
+        }
+    }
+
     id: window
 
-    width: 1280
-    height: 800
-    minimumWidth: 950
-    minimumHeight: 650
+    width: 1100
+    height: 600
+    minimumWidth: 640
+    minimumHeight: 480
 
     visible: true
     title: "CarDSP — Professional Audio Processor"
@@ -28,6 +123,7 @@ ApplicationWindow {
     property string selectedLayout: "6.1 Active"
     property bool eqEnabled: true
     property bool liveEqGraphInstalled: true
+    property string graphMode: "eq"
 
     readonly property color accent: "#39d6c1"
     readonly property color panel: "#192530"
@@ -389,6 +485,32 @@ ApplicationWindow {
                         }
                     }
                 }
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Button {
+                        text: "EQ Response"
+                        checkable: true
+                        checked: window.graphMode === "eq"
+                        onClicked: window.graphMode = "eq"
+                    }
+
+                    Button {
+                        text: "Live Spectrum"
+                        checkable: true
+                        checked: window.graphMode === "spectrum"
+                        onClicked: window.graphMode = "spectrum"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Label {
+                        text: microphoneManager.capturing ? "MIC LIVE" : "MIC STOPPED"
+                        color: microphoneManager.capturing ? window.accent : "#9cb2bf"
+                    }
+                }
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 260
@@ -398,6 +520,7 @@ ApplicationWindow {
 
                     Canvas {
                         id: responseGraph
+                        visible: window.graphMode === "eq"
                         anchors.fill: parent
                         anchors.margins: 20
 
@@ -457,8 +580,17 @@ ApplicationWindow {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.margins: 12
+                        visible: window.graphMode === "eq"
                         text: "Frequency Response — Live Parametric EQ"
                         color: "#9cb2bf"
+                    }
+
+                    SpectrumView {
+                        id: spectrumGraphView
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        visible: window.graphMode === "spectrum"
+                        spectrumData: spectrumAnalyzer.bands
                     }
                 }
 
@@ -483,8 +615,8 @@ ApplicationWindow {
                         clip: true
 
                         GridLayout {
-                            width: Math.max(eqScrollView.availableWidth, 4 * 200 + 3 * 12)
-                            columns: 4
+                            width: Math.max(200, eqScrollView.availableWidth)
+                            columns: Math.max(1, Math.floor(eqScrollView.availableWidth / 212))
                             columnSpacing: 12
                             rowSpacing: 12
 
@@ -697,6 +829,8 @@ ApplicationWindow {
         property int currentIndex: 1
     }
 }
+
+
 
 
 
