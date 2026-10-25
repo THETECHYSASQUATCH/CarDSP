@@ -11,3 +11,15 @@ build/
 
 # Local build diagnostics
 cardsp-build-errors.log
+
+# CarDSP local diagnostics
+/CarDSP-*.log
+/CarDSP-Diagnostics.txt
+
+# Local editor backups
+*.backup
+*.bak.*
+/UI/Desktop/backup-v0.1-*/
+
+# Build outputs
+/build/
