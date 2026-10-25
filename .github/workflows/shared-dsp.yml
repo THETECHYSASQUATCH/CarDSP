@@ -1,0 +1,43 @@
+name: Shared DSP CI
+
+on:
+  push:
+    paths:
+      - "SharedDSP/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/shared-dsp.yml"
+  pull_request:
+    paths:
+      - "SharedDSP/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/shared-dsp.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: DSP - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build/ci -DCARDSP_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build/ci --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build/ci -C Release --output-on-failure
