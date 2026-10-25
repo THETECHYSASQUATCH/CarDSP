@@ -23,3 +23,13 @@ cardsp-build-errors.log
 
 # Build outputs
 /build/
+
+# Local diagnostics and backups
+/CarDSP-*.log
+/CarDSP-Diagnostics.txt
+*.backup
+*.bak.*
+/UI/Desktop/backup-v0.1-*/
+
+# Generated build files
+/build/
