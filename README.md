@@ -144,72 +144,39 @@ An unsigned IPA must be signed/re-signed with a valid Apple development identity
 The Swift/iOS source requires Apple/Xcode tooling to compile and Apple tooling to perform native iOS code signing. GitHub Actions supplies the macOS/Xcode environment, allowing development from Windows while the cloud runner builds and, when valid signing assets are supplied, signs the IPA.
 
 <!-- CARDSP_STATUS_START -->
-## CarDSP Development Status
+## Development Status — Phase 4C
 
-### Completed: Phase 2D.5 — Preset Management and EQ Refresh
+**Status:** Windows desktop build and startup verified.
 
-- Qt 6 desktop interface with 9 channels and 32 EQ bands per channel.
-- Frequency-response visualization and persistent EQ settings.
-- Preset management with save, load, rename, duplicate, delete, import, and export capabilities.
-- Flat preset tested: all gains return to 0 dB.
-- Vocal Booster preset tested: frequency-dependent gains load successfully.
-- Fixed QML model refresh errors during preset switching.
-- Verified switching between Flat and Vocal Booster without QML runtime errors.
-- Git checkpoint: `b92cfc5` on `development/advanced-dsp`.
+### Implemented
+- Shared C++20 DSP library
+- 32-band parametric EQ interface
+- Peaking, low-pass, and high-pass biquad filters
+- Stereo DSP processing
+- Microphone input and spectrum visualization
+- Audio playback engine infrastructure
+- EQ configuration integration
 
-### SharedDSP Foundation
+### Verification
+- Qt 6.12.0 with MinGW 13.1
+- CMake build completed successfully
+- CarDSPDesktop.exe launches without reported errors
 
-Previously verified: 7/7 SharedDSP tests passed.
+### Pending
+- Audible EQ processing verification
+- Phase 4D playback controls
+- Live EQ adjustments
+- WAV, MP3, and FLAC decoding
+- macOS, Linux, iOS, and Android build verification
 
-Components include:
-- Biquad filtering and stereo processing.
-- High-pass and low-pass crossovers.
-- Fractional delay and time alignment.
-- Polarity inversion.
-- 2-input, 9-output routing matrix.
+### Windows Build
+Run from the CarDSP repository root:
 
-These components are not yet fully integrated into a live audio processing pipeline.
+```powershell
+$env:Path = "C:\Qt\Tools\mingw1310_64\bin;C:\Qt\6.12.0\mingw_64\bin;$env:Path"
+cmake --build build/qt-desktop --parallel 4
+& ".\build\qt-desktop\CarDSPDesktop.exe"
+```
 
-### In Progress: Phase 3A — Microphone Measurement Foundation
-
-Goal: Support both local and mobile microphone measurements through a shared PCM analysis interface.
-
-Planned capabilities:
-- Windows laptop and desktop microphone selection.
-- USB microphone and audio-interface input support.
-- Qt 6 Multimedia audio capture.
-- Portable C++20 FFT spectrum analysis.
-- Real-time analyzer (RTA) visualization.
-- Shared microphone input abstraction for future mobile PCM streams.
-
-Qt Multimedia configuration is being prepared. Working microphone capture has not yet been verified.
-
-### Planned: Phase 3B — Mobile Microphone Support
-
-- iPhone and Android microphone companion.
-- Secure local-network connection to CarDSP.
-- Microphone permission handling.
-- Audio sample-rate and format negotiation.
-- PCM streaming with timestamps and connection-state monitoring.
-
-### Planned: Phase 3C–3F — Assisted EQ
-
-- Pink-noise and frequency-sweep measurements.
-- Driver-seat and passenger-seat measurement positions.
-- Target frequency-response curves.
-- Frequency-response averaging and comparison.
-- Bounded EQ correction recommendations.
-- Manual review before applying EQ adjustments.
-- Before-and-after measurement comparison.
-- Save approved tuning results as presets.
-
-### Current Development Priorities
-
-1. Verify Qt Multimedia CMake integration.
-2. Implement desktop microphone enumeration and capture.
-3. Build and test the portable FFT analyzer.
-4. Add live RTA visualization.
-5. Connect mobile microphone input to the shared analyzer.
-6. Implement Assisted EQ recommendations and preset integration.
-
+Initial playback support targets raw 48 kHz stereo Float32 PCM.
 <!-- CARDSP_STATUS_END -->
