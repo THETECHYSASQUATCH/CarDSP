@@ -21,6 +21,7 @@ public:
     Q_INVOKABLE bool saveSettings();
     Q_INVOKABLE bool loadSettings();
     Q_INVOKABLE QString settingsFilePath() const;
+    Q_INVOKABLE bool activatePreset(const QString &name, QObject *manager);
 
     int channel() const;
     void setChannel(int channel);
@@ -55,3 +56,4 @@ private:
     QTimer m_saveTimer;
     void scheduleSave();
 };
+

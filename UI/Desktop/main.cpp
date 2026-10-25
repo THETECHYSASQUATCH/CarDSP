@@ -1,5 +1,6 @@
 #include <QQmlContext>
 #include "EqController.hpp"
+#include "PresetManager.hpp"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
@@ -12,7 +13,16 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     EqController eqController;
-    engine.rootContext()->setContextProperty("eqController", &eqController);
+    PresetManager presetManager;
+
+    engine.rootContext()->setContextProperty(
+        "eqController", &eqController
+    );
+
+    engine.rootContext()->setContextProperty(
+        "presetManager", &presetManager
+    );
+
     engine.loadFromModule("CarDSP", "Main");
 
     if (engine.rootObjects().isEmpty())
@@ -20,3 +30,5 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+
+

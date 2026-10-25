@@ -89,12 +89,13 @@ ApplicationWindow {
     }
 
     function refreshBands() {
-        eqBands.clear()
-
         const source = eqController.bands
 
+        if (!source)
+            return
+
         for (let i = 0; i < source.length; ++i) {
-            eqBands.append({
+            const band = {
                 name: source[i].name,
                 defaultName: source[i].defaultName,
                 frequency: source[i].frequency,
@@ -102,12 +103,21 @@ ApplicationWindow {
                 q: source[i].q,
                 enabled: source[i].enabled,
                 type: source[i].type
-            })
+            }
+
+            if (i < eqBands.count) {
+                eqBands.set(i, band)
+            } else {
+                eqBands.append(band)
+            }
+        }
+
+        while (eqBands.count > source.length) {
+            eqBands.remove(eqBands.count - 1)
         }
 
         responseGraph.requestPaint()
     }
-
     Component.onCompleted: {
         eqController.channel = selectedChannel
         refreshBands()
@@ -272,6 +282,113 @@ ApplicationWindow {
                     }
                 }
 
+                // CarDSP preset management
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 112
+                    radius: 10
+                    color: "#1b2a36"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Label {
+                                text: "DSP Presets"
+                                font.bold: true
+                                color: window.foreground
+                            }
+
+                            ComboBox {
+                                id: presetSelector
+                                Layout.preferredWidth: 240
+                                model: presetManager ? presetManager.presets : []
+                            }
+
+                            TextField {
+                                id: presetName
+                                Layout.fillWidth: true
+                                placeholderText: "Preset name"
+                                maximumLength: 64
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Button {
+                                text: "Save"
+                                onClicked: {
+                                    const name = presetName.text.trim()
+                                    if (!name) return
+
+                                    if (eqController.saveSettings()) {
+                                        presetManager.savePreset(
+                                            name,
+                                            eqController.settingsFilePath()
+                                        )
+                                    }
+                                }
+                            }
+
+                            Button {
+                                text: "Load"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    eqController.activatePreset(
+                                        presetSelector.currentText,
+                                        presetManager
+                                    )
+                                }
+                            }
+
+                            Button {
+                                text: "Duplicate"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    presetManager.duplicatePreset(
+                                        presetSelector.currentText,
+                                        presetName.text.trim()
+                                    )
+                                }
+                            }
+
+                            Button {
+                                text: "Rename"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    presetManager.renamePreset(
+                                        presetSelector.currentText,
+                                        presetName.text.trim()
+                                    )
+                                }
+                            }
+
+                            Button {
+                                text: "Delete"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    presetManager.deletePreset(
+                                        presetSelector.currentText
+                                    )
+                                }
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
+                            }
+
+                            Button {
+                                text: "Refresh"
+                                onClicked: presetManager.refresh()
+                            }
+                        }
+                    }
+                }
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 260
@@ -390,7 +507,7 @@ ApplicationWindow {
                                         spacing: 5
 
                                         Label {
-                                            text: window.bandNames[index]
+                                            text: index < window.bandNames.length ? window.bandNames[index] : "Band " + (index + 1)
                                             color: window.accent
                                             font.bold: true
                                         }
@@ -580,3 +697,10 @@ ApplicationWindow {
         property int currentIndex: 1
     }
 }
+
+
+
+
+
+
+

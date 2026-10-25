@@ -1,3 +1,4 @@
+#include "PresetManager.hpp"
 #include <QFileInfo>
 #include <QDir>
 #include <QFile>
@@ -498,4 +499,23 @@ QVariantList EqController::response() const
     }
 
     return result;
+}
+
+bool EqController::activatePreset(const QString &name, QObject *manager)
+{
+    auto *presets = qobject_cast<PresetManager *>(manager);
+
+    if (!presets)
+        return false;
+
+    // Finish any pending EQ autosave before replacing the settings file.
+    m_saveTimer.stop();
+
+    if (!saveSettings())
+        return false;
+
+    if (!presets->loadPreset(name, settingsFilePath()))
+        return false;
+
+    return loadSettings();
 }

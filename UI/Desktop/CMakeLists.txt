@@ -10,6 +10,8 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(CarDSPDesktop
+    PresetManager.cpp
+    PresetManager.hpp
     EqController.cpp
     EqController.hpp
     main.cpp
@@ -35,4 +37,5 @@ set_target_properties(CarDSPDesktop PROPERTIES
 if(WIN32)
     target_sources(CarDSPDesktop PRIVATE CarDSP.rc)
 endif()
+
 
