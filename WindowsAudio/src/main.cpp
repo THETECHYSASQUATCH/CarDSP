@@ -1,3 +1,4 @@
+#include "cardsp/device_notifications.hpp"
 #include <windows.h>
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
@@ -114,7 +115,39 @@ int wmain() {
     std::wcout << L"\nAutomatic device selection\n";
     showDefaultDevice(eRender, L"Default loopback source");
     showDefaultDevice(eCapture, L"Default physical input");
+    {
+        Microsoft::WRL::ComPtr<IMMDeviceEnumerator> watcherEnumerator;
+        HRESULT watcherHr = CoCreateInstance(
+            __uuidof(MMDeviceEnumerator),
+            nullptr,
+            CLSCTX_ALL,
+            IID_PPV_ARGS(&watcherEnumerator)
+        );
+
+        if (SUCCEEDED(watcherHr)) {
+            auto* notifications = new cardsp::DeviceNotifications();
+
+            watcherHr = watcherEnumerator->RegisterEndpointNotificationCallback(
+                notifications
+            );
+
+            if (SUCCEEDED(watcherHr)) {
+                std::wcout << L"\nMonitoring device changes. Press Enter to stop.\n";
+                std::wstring line;
+                std::getline(std::wcin, line);
+
+                watcherEnumerator->UnregisterEndpointNotificationCallback(
+                    notifications
+                );
+            }
+
+            notifications->Release();
+        }
+    }
+
     CoUninitialize();
     return 0;
 }
+
+
 
