@@ -2,3 +2,7 @@
 .swiftpm/
 .vscode/.swiftpm/
 .DS_Store
+SharedDSP/build/
+.vs/
+build/
+*.cpp.bak

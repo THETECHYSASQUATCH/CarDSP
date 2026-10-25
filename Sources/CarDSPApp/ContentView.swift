@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import CarDSPCore
+import UniformTypeIdentifiers
 
 @MainActor
 final class DSPViewModel: ObservableObject {
@@ -56,6 +57,10 @@ struct ContentView: View {
     @State private var routeRefreshToken = UUID()
     @State private var lastRouteChange = "Monitoring audio route"
     @State private var profileStatus = "No output profile loaded"
+    @State private var choosingAudioFile = false
+#if os(macOS)
+    @StateObject private var macRouting = MacRoutingController()
+#endif
 
     var body: some View {
         TabView {
@@ -155,7 +160,7 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        GroupBox("Live Level Meter") {
+                        GroupBox("Queued DSP Buffer Level") {
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack {
                                     Text("Peak")
@@ -174,7 +179,7 @@ struct ContentView: View {
                                         .fontWeight(.semibold)
                                 }
 
-                                Text("The meter reflects CarDSP's app-owned audio engine path. It does not claim access to audio samples from unrelated iOS apps.")
+                                Text("Peak level of the latest processed local-file buffer, which may be queued ahead of playback. This does not meter MusicKit or macOS virtual routing.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -186,9 +191,9 @@ struct ContentView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Label("App Audio Source", systemImage: "music.note")
                                 Image(systemName: "arrow.down")
-                                Text("31-band EQ → HPF \(Int(viewModel.configuration.highPassHz)) Hz → Subsonic \(Int(viewModel.configuration.subsonicHz)) Hz → LPF \(Int(viewModel.configuration.lowPassHz)) Hz")
+                                Text("Time alignment and gain → HPF \(Int(viewModel.configuration.highPassHz)) Hz → Subsonic \(Int(viewModel.configuration.subsonicHz)) Hz → 31-band EQ → Compressor")
                                     .font(.footnote)
-                                Text("Time Alignment \(String(format: "%.1f", viewModel.configuration.timeAlignmentMs)) ms → Limiter \(viewModel.configuration.limiterEnabled ? "ON" : "OFF")")
+                                Text("Time Alignment \(String(format: "%.1f", viewModel.configuration.timeAlignmentMs)) ms; Limiter \(viewModel.configuration.limiterEnabled ? "ON" : "OFF"). LPF is reserved for the separate subwoofer bus.")
                                     .font(.footnote)
                                 Image(systemName: "arrow.down")
                                 Label(AudioSessionController.shared.currentOutputTypeDescription, systemImage: "cable.connector")
@@ -216,7 +221,18 @@ struct ContentView: View {
                         Button("Request Apple Music Access") { Task { await music.requestAccess() } }
                             .buttonStyle(.borderedProminent)
 
+                        Text("Apple Music playback is separate and is not processed by this DSP. Choose an unprotected local audio file for EQ and dynamics.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("Choose Local Audio File") { choosingAudioFile = true }
+
+#if os(macOS)
+                        MacRoutingView(configuration: viewModel.configuration, stopLocalPlayback: { audio.stop() }, routing: macRouting)
+#endif
+
                         Button(audio.isRunning ? "Stop DSP Engine" : "Start DSP Engine") {
+#if os(macOS)
+                            macRouting.stop()
+#endif
                             if audio.isRunning { audio.stop() } else { audio.start(dsp: viewModel.dsp) }
                             routeRefreshToken = UUID()
                         }
@@ -245,11 +261,18 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: AudioSessionController.routeChangeNotification)) { notification in
+            audio.routeChanged()
             lastRouteChange = AudioSessionController.shared.routeChangeReasonDescription(notification)
             routeRefreshToken = UUID()
             if outputProfiles.autoLoadEnabled {
                 loadCurrentOutputProfile(showMissingStatus: false)
             }
+        }
+        .fileImporter(isPresented: $choosingAudioFile, allowedContentTypes: [.audio]) { result in
+#if os(macOS)
+            macRouting.stop()
+#endif
+            if case .success(let url) = result { audio.load(url: url, dsp: viewModel.dsp) }
         }
     }
 

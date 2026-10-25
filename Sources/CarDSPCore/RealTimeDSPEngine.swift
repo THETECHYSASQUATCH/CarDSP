@@ -4,6 +4,7 @@ import Foundation
 public final class RealTimeDSPEngine: @unchecked Sendable {
     private let lock = NSLock()
     private var configuration = DSPConfiguration()
+    private var processingSampleRate: Float?
     private var filters: [Biquad] = []
     private var hp = Biquad(); private var lp = Biquad(); private var subsonic = Biquad()
     private var leftDelayBuffer = Array(repeating: Float.zero, count: 4096)
@@ -14,7 +15,24 @@ public final class RealTimeDSPEngine: @unchecked Sendable {
     public init(configuration: DSPConfiguration = DSPConfiguration()) {
         self.configuration = configuration; rebuildFilters(shouldResetState: true)
     }
-    public func setConfiguration(_ configuration: DSPConfiguration) { lock.lock(); defer { lock.unlock() }; self.configuration = configuration; rebuildFilters(shouldResetState: true) }
+    public func setConfiguration(_ configuration: DSPConfiguration) {
+        lock.lock(); defer { lock.unlock() }
+        self.configuration = configuration
+        if let processingSampleRate { self.configuration.sampleRate = processingSampleRate }
+        rebuildFilters(shouldResetState: true)
+    }
+
+    /// Bind coefficients to the source PCM rate, independent of a saved preset's rate.
+    /// Call outside the audio callback before starting a new stream.
+    @discardableResult
+    public func prepare(sampleRate: Float) -> Bool {
+        guard sampleRate.isFinite, sampleRate >= 8_000, sampleRate <= 384_000 else { return false }
+        lock.lock(); defer { lock.unlock() }
+        processingSampleRate = sampleRate
+        configuration.sampleRate = sampleRate
+        rebuildFilters(shouldResetState: true)
+        return true
+    }
     public func currentConfiguration() -> DSPConfiguration { lock.lock(); defer { lock.unlock() }; return configuration }
     public func reset() { lock.lock(); defer { lock.unlock() }; resetState() }
 

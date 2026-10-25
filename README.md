@@ -2,6 +2,11 @@
 
 Real-time DSP foundation and iPhone car-audio EQ application.
 
+For the current local development changes, platform support and known limits,
+see [Development status](DEVELOPMENT_STATUS.md). This includes local-file DSP
+playback, experimental macOS virtual-device EQ routing, and the portable Windows
+PCM processing tool; these changes are not yet a published alpha release.
+
 ## Current release
 
 **CarDSP v0.1.0-alpha.6** — current install/test alpha.
