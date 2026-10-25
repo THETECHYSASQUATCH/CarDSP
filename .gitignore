@@ -6,3 +6,5 @@ SharedDSP/build/
 .vs/
 build/
 *.cpp.bak
+# Local source backups
+*.bak
