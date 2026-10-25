@@ -7,3 +7,7 @@ enable_testing()
 
 # Portable cross-platform DSP engine.
 add_subdirectory(SharedDSP)
+
+if(WIN32)
+    add_subdirectory(WindowsAudio)
+endif()
