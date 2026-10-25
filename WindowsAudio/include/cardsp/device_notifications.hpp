@@ -10,6 +10,8 @@ class DeviceNotifications final : public IMMNotificationClient {
 public:
     DeviceNotifications() = default;
 
+    bool RefreshPending() noexcept;
+
     ULONG STDMETHODCALLTYPE AddRef() override;
     ULONG STDMETHODCALLTYPE Release() override;
 
@@ -33,6 +35,8 @@ public:
 
 private:
     std::atomic<ULONG> references_{1};
+    std::atomic<bool> refreshPending_{false};
 };
 
 }
+

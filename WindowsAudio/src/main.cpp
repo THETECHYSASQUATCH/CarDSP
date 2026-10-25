@@ -1,4 +1,8 @@
 #include "cardsp/device_notifications.hpp"
+#include "cardsp/audio_device_manager.hpp"
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include <windows.h>
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
@@ -115,7 +119,17 @@ int wmain() {
     std::wcout << L"\nAutomatic device selection\n";
     showDefaultDevice(eRender, L"Default loopback source");
     showDefaultDevice(eCapture, L"Default physical input");
+    // CarDSP automatic endpoint tracking
     {
+        cardsp::AudioDeviceManager manager;
+        HRESULT managerHr = manager.Initialize();
+
+        if (FAILED(managerHr)) {
+            std::wcerr << L"[CarDSP] Initial endpoint refresh returned 0x"
+                       << std::hex << static_cast<unsigned long>(managerHr)
+                       << std::dec << L"\n";
+        }
+
         Microsoft::WRL::ComPtr<IMMDeviceEnumerator> watcherEnumerator;
         HRESULT watcherHr = CoCreateInstance(
             __uuidof(MMDeviceEnumerator),
@@ -132,9 +146,66 @@ int wmain() {
             );
 
             if (SUCCEEDED(watcherHr)) {
+                std::atomic<bool> running{true};
+
+                std::thread refreshThread([&]() {
+                    HRESULT threadHr = CoInitializeEx(
+                        nullptr, COINIT_MULTITHREADED
+                    );
+
+                    if (FAILED(threadHr)) {
+                        std::wcerr << L"[CarDSP] Worker COM initialization failed.\n";
+                        return;
+                    }
+
+                    while (running.load()) {
+                        if (notifications->RefreshPending()) {
+                            const auto oldPlayback = manager.Playback();
+                            const auto oldRecording = manager.Recording();
+
+                            const HRESULT refreshHr = manager.Refresh();
+
+                            if (FAILED(refreshHr)) {
+                                std::wcerr << L"[CarDSP] Endpoint refresh returned 0x"
+                                           << std::hex
+                                           << static_cast<unsigned long>(refreshHr)
+                                           << std::dec << L"\n";
+                            }
+
+                            const auto playback = manager.Playback();
+                            const auto recording = manager.Recording();
+
+                            if (playback.id != oldPlayback.id ||
+                                playback.available != oldPlayback.available) {
+                                std::wcout << L"[CarDSP] Playback: "
+                                           << (playback.available
+                                               ? playback.name : L"Unavailable")
+                                           << L"\n";
+                            }
+
+                            if (recording.id != oldRecording.id ||
+                                recording.available != oldRecording.available) {
+                                std::wcout << L"[CarDSP] Recording: "
+                                           << (recording.available
+                                               ? recording.name : L"Unavailable")
+                                           << L"\n";
+                            }
+                        }
+
+                        std::this_thread::sleep_for(
+                            std::chrono::milliseconds(100)
+                        );
+                    }
+
+                    CoUninitialize();
+                });
+
                 std::wcout << L"\nMonitoring device changes. Press Enter to stop.\n";
                 std::wstring line;
                 std::getline(std::wcin, line);
+
+                running.store(false);
+                refreshThread.join();
 
                 watcherEnumerator->UnregisterEndpointNotificationCallback(
                     notifications
@@ -148,6 +219,7 @@ int wmain() {
     CoUninitialize();
     return 0;
 }
+
 
 
 

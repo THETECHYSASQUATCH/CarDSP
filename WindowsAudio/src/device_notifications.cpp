@@ -4,6 +4,9 @@
 
 namespace cardsp {
 
+bool DeviceNotifications::RefreshPending() noexcept {
+    return refreshPending_.exchange(false);
+}
 ULONG STDMETHODCALLTYPE DeviceNotifications::AddRef() {
     return ++references_;
 }
@@ -38,6 +41,7 @@ HRESULT STDMETHODCALLTYPE DeviceNotifications::OnDeviceStateChanged(
     std::wcout << L"[Audio] State changed: "
                << (deviceId ? deviceId : L"(unknown)")
                << L" state=" << newState << L"\n";
+    refreshPending_.store(true);
     return S_OK;
 }
 
@@ -46,6 +50,7 @@ HRESULT STDMETHODCALLTYPE DeviceNotifications::OnDeviceAdded(
 
     std::wcout << L"[Audio] Added: "
                << (deviceId ? deviceId : L"(unknown)") << L"\n";
+    refreshPending_.store(true);
     return S_OK;
 }
 
@@ -54,6 +59,7 @@ HRESULT STDMETHODCALLTYPE DeviceNotifications::OnDeviceRemoved(
 
     std::wcout << L"[Audio] Removed: "
                << (deviceId ? deviceId : L"(unknown)") << L"\n";
+    refreshPending_.store(true);
     return S_OK;
 }
 
@@ -65,6 +71,7 @@ HRESULT STDMETHODCALLTYPE DeviceNotifications::OnDefaultDeviceChanged(
                << L" role=" << static_cast<int>(role)
                << L" id=" << (deviceId ? deviceId : L"(none)")
                << L"\n";
+    if (role == eMultimedia) refreshPending_.store(true);
     return S_OK;
 }
 
@@ -74,3 +81,5 @@ HRESULT STDMETHODCALLTYPE DeviceNotifications::OnPropertyValueChanged(
 }
 
 }
+
+
