@@ -3,7 +3,7 @@ if(NOT WIN32)
 endif()
 
 add_executable(cardsp_windows_audio
-    src/main.cpp src/device_notifications.cpp
+    src/main.cpp src/device_notifications.cpp src/audio_device_manager.cpp
 )
 
 target_include_directories(cardsp_windows_audio PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -21,4 +21,5 @@ target_compile_definitions(cardsp_windows_audio PRIVATE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
 )
+
 
