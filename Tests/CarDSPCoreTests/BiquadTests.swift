@@ -52,6 +52,41 @@ final class BiquadTests: XCTestCase {
 }
 
 final class RealTimeDSPEngineTests: XCTestCase {
+    func testSourceRateSurvivesPresetChanges() {
+        let engine = RealTimeDSPEngine()
+        XCTAssertTrue(engine.prepare(sampleRate: 44_100))
+        engine.setConfiguration(.bassBoost())
+        XCTAssertEqual(engine.currentConfiguration().sampleRate, 44_100)
+        XCTAssertFalse(engine.prepare(sampleRate: .nan))
+        XCTAssertFalse(engine.prepare(sampleRate: 0))
+        XCTAssertEqual(engine.currentConfiguration().sampleRate, 44_100)
+    }
+
+    func testPlanarPlaybackMatchesInterleavedDSP() {
+        var config = DSPConfiguration.bassBoost()
+        config.timeAlignmentMs = 2
+        let interleavedEngine = RealTimeDSPEngine(configuration: config)
+        let planarEngine = RealTimeDSPEngine(configuration: config)
+        XCTAssertTrue(interleavedEngine.prepare(sampleRate: 44_100))
+        XCTAssertTrue(planarEngine.prepare(sampleRate: 44_100))
+        var left = (0..<1024).map { sinf(Float($0) * 0.13) * 0.2 }
+        var right = Array(repeating: Float.zero, count: left.count)
+        var interleaved = left.flatMap { [$0, Float.zero] }
+        interleaved.withUnsafeMutableBufferPointer {
+            interleavedEngine.processInterleavedStereo($0.baseAddress!, frameCount: 1024)
+        }
+        left.withUnsafeMutableBufferPointer { l in
+            right.withUnsafeMutableBufferPointer { r in
+                planarEngine.processNonInterleavedStereo(l.baseAddress!, r.baseAddress!, frameCount: 257)
+                planarEngine.processNonInterleavedStereo(l.baseAddress!.advanced(by: 257), r.baseAddress!.advanced(by: 257), frameCount: 767)
+            }
+        }
+        for index in left.indices {
+            XCTAssertEqual(left[index], interleaved[index * 2], accuracy: 0.00001)
+            XCTAssertEqual(right[index], 0)
+        }
+    }
+
     func testFilterStateContinuesAcrossBuffers() {
         var config = DSPConfiguration.flat()
         config.highPassHz = 10

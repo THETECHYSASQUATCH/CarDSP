@@ -2,3 +2,4 @@
 .swiftpm/
 .vscode/.swiftpm/
 .DS_Store
+SharedDSP/build/

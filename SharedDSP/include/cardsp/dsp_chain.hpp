@@ -40,6 +40,8 @@ private:
 };
 
 inline BiquadCoefficients makeLowPass(float sampleRate, float frequency, float q = 0.70710678f) noexcept {
+    if (!std::isfinite(sampleRate) || sampleRate < 8000 || sampleRate > 384000 ||
+        !std::isfinite(frequency) || !std::isfinite(q) || q <= 0) return {};
     frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
     q = std::max(q, 0.001f);
 
@@ -59,6 +61,8 @@ inline BiquadCoefficients makeLowPass(float sampleRate, float frequency, float q
 }
 
 inline BiquadCoefficients makeHighPass(float sampleRate, float frequency, float q = 0.70710678f) noexcept {
+    if (!std::isfinite(sampleRate) || sampleRate < 8000 || sampleRate > 384000 ||
+        !std::isfinite(frequency) || !std::isfinite(q) || q <= 0) return {};
     frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
     q = std::max(q, 0.001f);
 
@@ -78,6 +82,9 @@ inline BiquadCoefficients makeHighPass(float sampleRate, float frequency, float 
 }
 
 inline BiquadCoefficients makePeakingEQ(float sampleRate, float frequency, float q, float gainDB) noexcept {
+    if (!std::isfinite(sampleRate) || sampleRate < 8000 || sampleRate > 384000 ||
+        !std::isfinite(frequency) || !std::isfinite(q) || q <= 0 ||
+        !std::isfinite(gainDB) || gainDB < -96 || gainDB > 96) return {};
     frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
     q = std::max(q, 0.001f);
 
@@ -101,8 +108,8 @@ template <std::size_t MaxFilters = 40>
 class FilterChain {
 public:
     void clear() noexcept {
-        count_ = 0;
         reset();
+        count_ = 0;
     }
 
     [[nodiscard]] bool add(const BiquadCoefficients& coefficients) noexcept {

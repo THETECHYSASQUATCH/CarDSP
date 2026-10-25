@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key><string>CarDSP</string>
+    <key>CFBundleIdentifier</key><string>com.thetechysasquatch.CarDSP</string>
+    <key>CFBundleName</key><string>CarDSP</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>CarDSP uses audio input for measurements and for routing audio from a virtual device through EQ to your selected output.</string>
+    <key>NSAppleMusicUsageDescription</key>
+    <string>CarDSP requests Apple Music access for playback. MusicKit playback is separate from local-file DSP.</string>
+</dict>
+</plist>
