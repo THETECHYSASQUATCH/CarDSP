@@ -1,0 +1,52 @@
+ .../res/drawable-nodpi/ic_launcher_foreground.png  | Bin [31m0[m -> [32m1079119[m bytes
+ .../Android/res/mipmap-anydpi-v26/ic_launcher.xml  |   5 [32m+[m
+ .../Icons/Android/res/mipmap-hdpi/ic_launcher.png  | Bin [31m0[m -> [32m11838[m bytes
+ .../Icons/Android/res/mipmap-mdpi/ic_launcher.png  | Bin [31m0[m -> [32m5818[m bytes
+ .../Icons/Android/res/mipmap-xhdpi/ic_launcher.png | Bin [31m0[m -> [32m19773[m bytes
+ .../Android/res/mipmap-xxhdpi/ic_launcher.png      | Bin [31m0[m -> [32m40199[m bytes
+ .../Android/res/mipmap-xxxhdpi/ic_launcher.png     | Bin [31m0[m -> [32m66482[m bytes
+ Assets/Icons/Android/res/values/colors.xml         |   1 [32m+[m
+ Assets/Icons/Generate-Icons.py                     | 137 [32m++++++[m
+ .../Icons/Linux/hicolor/1024x1024/apps/cardsp.png  | Bin [31m0[m -> [32m1079119[m bytes
+ Assets/Icons/Linux/hicolor/128x128/apps/cardsp.png | Bin [31m0[m -> [32m32731[m bytes
+ Assets/Icons/Linux/hicolor/16x16/apps/cardsp.png   | Bin [31m0[m -> [32m855[m bytes
+ Assets/Icons/Linux/hicolor/24x24/apps/cardsp.png   | Bin [31m0[m -> [32m1732[m bytes
+ Assets/Icons/Linux/hicolor/256x256/apps/cardsp.png | Bin [31m0[m -> [32m110032[m bytes
+ Assets/Icons/Linux/hicolor/32x32/apps/cardsp.png   | Bin [31m0[m -> [32m2848[m bytes
+ Assets/Icons/Linux/hicolor/48x48/apps/cardsp.png   | Bin [31m0[m -> [32m5818[m bytes
+ Assets/Icons/Linux/hicolor/512x512/apps/cardsp.png | Bin [31m0[m -> [32m379832[m bytes
+ Assets/Icons/Linux/hicolor/64x64/apps/cardsp.png   | Bin [31m0[m -> [32m9660[m bytes
+ Assets/Icons/Source/CarDSP-1024.png                | Bin [31m0[m -> [32m1079119[m bytes
+ Assets/Icons/Source/CarDSP-Original-Sheet.png      | Bin [31m0[m -> [32m1934503[m bytes
+ Assets/Icons/Windows/CarDSP-1024.png               | Bin [31m0[m -> [32m1079119[m bytes
+ Assets/Icons/Windows/CarDSP-128.png                | Bin [31m0[m -> [32m32731[m bytes
+ Assets/Icons/Windows/CarDSP-16.png                 | Bin [31m0[m -> [32m855[m bytes
+ Assets/Icons/Windows/CarDSP-24.png                 | Bin [31m0[m -> [32m1732[m bytes
+ Assets/Icons/Windows/CarDSP-256.png                | Bin [31m0[m -> [32m110032[m bytes
+ Assets/Icons/Windows/CarDSP-32.png                 | Bin [31m0[m -> [32m2848[m bytes
+ Assets/Icons/Windows/CarDSP-48.png                 | Bin [31m0[m -> [32m5818[m bytes
+ Assets/Icons/Windows/CarDSP-512.png                | Bin [31m0[m -> [32m379832[m bytes
+ Assets/Icons/Windows/CarDSP-64.png                 | Bin [31m0[m -> [32m9660[m bytes
+ Assets/Icons/Windows/CarDSP.ico                    | Bin [31m0[m -> [32m163794[m bytes
+ .../Icons/iOS/AppIcon.appiconset/AppIcon-1024.png  | Bin [31m0[m -> [32m964804[m bytes
+ Assets/Icons/iOS/AppIcon.appiconset/Contents.json  |  14 [32m+[m
+ Assets/Icons/macOS/CarDSP-1024.png                 | Bin [31m0[m -> [32m1079119[m bytes
+ Assets/Icons/macOS/CarDSP-128.png                  | Bin [31m0[m -> [32m32731[m bytes
+ Assets/Icons/macOS/CarDSP-16.png                   | Bin [31m0[m -> [32m855[m bytes
+ Assets/Icons/macOS/CarDSP-256.png                  | Bin [31m0[m -> [32m110032[m bytes
+ Assets/Icons/macOS/CarDSP-32.png                   | Bin [31m0[m -> [32m2848[m bytes
+ Assets/Icons/macOS/CarDSP-512.png                  | Bin [31m0[m -> [32m379832[m bytes
+ Assets/Icons/macOS/CarDSP-64.png                   | Bin [31m0[m -> [32m9660[m bytes
+ Assets/Icons/macOS/CarDSP.icns                     | Bin [31m0[m -> [32m2065570[m bytes
+ CMakeLists.txt                                     |  20 [32m+[m
+ Launch-CarDSP.ps1                                  |  32 [32m++[m
+ SharedDSP/CMakeLists.txt                           |   7 [32m+[m
+ UI/Desktop/CMakeLists.txt                          |  11 [32m+[m[31m-[m
+ UI/Desktop/CarDSP.rc                               |   1 [32m+[m
+ UI/Desktop/EqController.cpp                        | 501 [32m+++++++++++++++++++++[m
+ UI/Desktop/EqController.hpp                        |  57 [32m+++[m
+ UI/Desktop/Main.qml                                | 278 [32m++++++++++[m[31m--[m
+ UI/Desktop/main.cpp                                |   8 [32m+[m[31m-[m
+ WindowsAudio/CMakeLists.txt                        |   5 [32m+[m
+ build.ps1                                          |  50 [32m+[m[31m-[m
+ 51 files changed, 1092 insertions(+), 35 deletions(-)
