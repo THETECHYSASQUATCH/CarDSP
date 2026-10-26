@@ -1,0 +1,28 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "build",
+  "permission": {
+    "bash": "ask",
+    "task": {
+      "*": "deny"
+    },
+    "grep": "allow",
+    "glob": "allow",
+    "read": "allow",
+    "edit": "ask",
+    "list": "allow"
+  },
+  "agent": {
+    "build": {
+      "mode": "primary",
+      "description": "Primary CarDSP development agent",
+      "permission": {
+        "task": {
+          "*": "deny"
+        },
+        "bash": "ask",
+        "edit": "ask"
+      }
+    }
+  }
+}
