@@ -33,3 +33,11 @@ cardsp-build-errors.log
 
 # Generated build files
 /build/
+
+# Local development backups and scratch exports
+/CarDSP_Backups/
+*.phase4b-backup
+*.phase4c-backup
+*.debug-backup
+/CarDSP_*_Source.txt
+/Apply-CarDSP-Step1.ps1

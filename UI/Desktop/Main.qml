@@ -1,3 +1,4 @@
+import QtQuick.Dialogs
 import CarDSP
 import QtQuick.Window
 import QtQuick
@@ -5,6 +6,166 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ApplicationWindow {
+    // Phase 4D - Native audio file picker
+    FileDialog {
+        id: pcmFileDialog
+        title: "Select PCM Audio File"
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["Raw PCM Audio (*.pcm *.raw)", "All Files (*)"]
+        onAccepted: {
+            window.selectedPcmFile = audioPlaybackEngine.localFilePath(selectedFile)
+        }
+    }
+
+    function configurePlaybackEq() {
+        if (!audioPlaybackEngine) {
+            console.error("CarDSP: Audio playback engine unavailable")
+            return false
+        }
+
+        const bands = []
+
+        for (let i = 0; i < eqBands.count; ++i) {
+            const band = eqBands.get(i)
+
+            bands.push({
+                enabled: band.enabled,
+                frequency: band.frequency,
+                gain: band.gain,
+                q: band.q,
+                type: band.type
+            })
+        }
+
+        const success = audioPlaybackEngine.configureEq(bands)
+
+        console.log("CarDSP: EQ configuration:", success,
+                    "Bands:", bands.length)
+
+        if (!success) {
+            console.error("CarDSP:", audioPlaybackEngine.lastError)
+        }
+
+        return success
+    }
+    // Phase 4D - Audio playback controls
+    property string selectedPcmFile: ""
+
+    header: Rectangle {
+        id: playbackToolbar
+        height: 112
+        color: "#172631"
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 6
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Label { text: "Audio Playback"; color: "white"; font.bold: true }
+
+                TextField {
+                    id: pcmPath
+                    Layout.fillWidth: true
+                    placeholderText: "Path to 48 kHz stereo Float32 PCM file"
+                    text: window.selectedPcmFile
+                    onEditingFinished: window.selectedPcmFile = text
+                }
+
+                Button {
+                    text: "Browse..."
+                    onClicked: pcmFileDialog.open()
+                }
+
+                ComboBox {
+                    id: outputSelector
+                    Layout.preferredWidth: 200
+                    model: audioPlaybackEngine ? audioPlaybackEngine.outputDevices : []
+                    textRole: "name"
+                }
+
+                Button {
+                    text: "Play"
+                    enabled: audioPlaybackEngine && !audioPlaybackEngine.playing
+                             && window.selectedPcmFile.length > 0
+                    onClicked: {
+                        if (window.configurePlaybackEq()) {
+                            console.log("CarDSP: Starting playback:",
+                                        window.selectedPcmFile)
+
+                            const started = audioPlaybackEngine.playPcm(
+                                window.selectedPcmFile,
+                                outputSelector.currentIndex
+                            )
+
+                            console.log("CarDSP: Playback started:", started)
+
+                            if (!started) {
+                                console.error("CarDSP playback error:",
+                                              audioPlaybackEngine.lastError)
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    text: "Stop"
+                    enabled: audioPlaybackEngine && audioPlaybackEngine.playing
+                    onClicked: audioPlaybackEngine.stop()
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Label { text: "Volume"; color: "white" }
+                Slider {
+                    id: volumeSlider
+                    Layout.preferredWidth: 180
+                    from: 0
+                    to: 1
+                    value: audioPlaybackEngine ? audioPlaybackEngine.volume : 0.25
+                    onMoved: audioPlaybackEngine.volume = value
+                }
+
+                EditableValue {
+                    Layout.preferredWidth: 90
+                    parameterName: "Master volume"
+                    unit: "%"
+                    decimals: 1
+                    minimumValue: volumeSlider.from * 100
+                    maximumValue: volumeSlider.to * 100
+                    value: (audioPlaybackEngine ? audioPlaybackEngine.volume : 0.25) * 100
+                    onValueCommitted: function(newValue) {
+                        if (audioPlaybackEngine) audioPlaybackEngine.volume = newValue / 100
+                    }
+                }
+
+                CheckBox {
+                    text: "Bypass EQ"
+                    checked: audioPlaybackEngine ? audioPlaybackEngine.bypass : false
+                    onToggled: audioPlaybackEngine.bypass = checked
+                }
+
+                Button {
+                    text: "Refresh Outputs"
+                    onClicked: audioPlaybackEngine.refreshOutputDevices()
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    color: "#ff8888"
+                    elide: Text.ElideRight
+                    text: audioPlaybackEngine ? audioPlaybackEngine.lastError : ""
+                }
+            }
+        }
+    }
+
     // Phase 3A.3 - Microphone capture controls
     footer: Rectangle {
         id: microphonePanel
@@ -121,7 +282,7 @@ ApplicationWindow {
     palette.highlightedText: "#101820"
     property int selectedChannel: 0
     property string selectedLayout: "6.1 Active"
-    property bool eqEnabled: true
+    property bool eqEnabled: audioPlaybackEngine ? !audioPlaybackEngine.bypass : true
     property bool liveEqGraphInstalled: true
     property string graphMode: "eq"
 
@@ -215,8 +376,16 @@ ApplicationWindow {
         responseGraph.requestPaint()
     }
     Component.onCompleted: {
-        eqController.channel = selectedChannel
-        refreshBands()
+        console.log("CarDSP QML controller diagnostics:")
+        console.log("eqController:", eqController)
+        console.log("microphoneManager:", microphoneManager)
+        console.log("spectrumAnalyzer:", spectrumAnalyzer)
+        console.log("audioPlaybackEngine:", audioPlaybackEngine)
+
+        if (eqController) {
+            eqController.channel = selectedChannel
+            refreshBands()
+        }
     }
 
     Connections {
@@ -330,7 +499,7 @@ ApplicationWindow {
                     Switch {
                         text: "EQ Enabled"
                         checked: window.eqEnabled
-                        onToggled: { window.eqEnabled = checked; responseGraph.requestPaint() }
+                        onToggled: { audioPlaybackEngine.bypass = !checked; responseGraph.requestPaint() }
                     }
                 }
 
@@ -507,8 +676,8 @@ ApplicationWindow {
                     }
 
                     Label {
-                        text: microphoneManager.capturing ? "MIC LIVE" : "MIC STOPPED"
-                        color: microphoneManager.capturing ? window.accent : "#9cb2bf"
+                        text: (microphoneManager && microphoneManager.capturing) ? "MIC LIVE" : "MIC STOPPED"
+                        color: (microphoneManager && microphoneManager.capturing) ? window.accent : "#9cb2bf"
                     }
                 }
                 Rectangle {
@@ -590,7 +759,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         visible: window.graphMode === "spectrum"
-                        spectrumData: spectrumAnalyzer.bands
+                        spectrumData: spectrumAnalyzer ? spectrumAnalyzer.bands : []
                     }
                 }
 
@@ -614,7 +783,14 @@ ApplicationWindow {
                         anchors.margins: 12
                         clip: true
 
+                        contentWidth: availableWidth
+                        contentHeight: eqGrid.implicitHeight
+
+                        ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
                         GridLayout {
+                            id: eqGrid
                             width: Math.max(200, eqScrollView.availableWidth)
                             columns: Math.max(1, Math.floor(eqScrollView.availableWidth / 212))
                             columnSpacing: 12
@@ -728,38 +904,34 @@ ApplicationWindow {
                                                 eqController.setBandType(index, currentIndex)
                                             }
                                         }
-                                        TextField {
+                                        EditableValue {
                                             id: bandFrequencyInput
                                             Layout.fillWidth: true
-                                            text: String(eqBands.get(index).frequency)
-
-                                            validator: DoubleValidator {
-                                                bottom: 20
-                                                top: 20000
-                                                decimals: 1
-                                            }
-
-                                            onEditingFinished: {
-                                                if (!acceptableInput)
-                                                    return
-
+                                            parameterName: "Frequency"
+                                            unit: "Hz"
+                                            minimumValue: 20
+                                            maximumValue: 20000
+                                            decimals: 1
+                                            value: eqBands.get(index).frequency
+                                            onValueCommitted: function(newValue) {
                                                 const band = eqBands.get(index)
-
-                                                eqController.setBand(
-                                                    index,
-                                                    Number(text),
-                                                    band.gain,
-                                                    band.q,
-                                                    band.enabled
-                                                )
+                                                eqController.setBand(index, newValue, band.gain, band.q, band.enabled)
                                             }
                                         }
 
-                                        Label {
-                                            text: "Gain: " +
-                                                  gainSlider.value.toFixed(1) +
-                                                  " dB"
-                                            color: window.foreground
+                                        EditableValue {
+                                            Layout.fillWidth: true
+                                            parameterName: "Gain"
+                                            unit: "dB"
+                                            minimumValue: gainSlider.from
+                                            maximumValue: gainSlider.to
+                                            stepSize: gainSlider.stepSize
+                                            decimals: 1
+                                            value: eqBands.get(index).gain
+                                            onValueCommitted: function(newValue) {
+                                                const band = eqBands.get(index)
+                                                eqController.setBand(index, band.frequency, newValue, band.q, band.enabled)
+                                            }
                                         }
 
                                         Slider {
@@ -788,30 +960,18 @@ ApplicationWindow {
                                             color: window.foreground
                                         }
 
-                                        TextField {
+                                        EditableValue {
                                             id: bandQInput
                                             Layout.fillWidth: true
-                                            text: String(eqBands.get(index).q)
-
-                                            validator: DoubleValidator {
-                                                bottom: 0.1
-                                                top: 30
-                                                decimals: 2
-                                            }
-
-                                            onEditingFinished: {
-                                                if (!acceptableInput)
-                                                    return
-
+                                            parameterName: "Bandwidth Q factor"
+                                            unit: "Q"
+                                            minimumValue: 0.1
+                                            maximumValue: 30
+                                            decimals: 2
+                                            value: eqBands.get(index).q
+                                            onValueCommitted: function(newValue) {
                                                 const band = eqBands.get(index)
-
-                                                eqController.setBand(
-                                                    index,
-                                                    band.frequency,
-                                                    band.gain,
-                                                    Number(text),
-                                                    band.enabled
-                                                )
+                                                eqController.setBand(index, band.frequency, band.gain, newValue, band.enabled)
                                             }
                                         }
                                     }
@@ -829,12 +989,3 @@ ApplicationWindow {
         property int currentIndex: 1
     }
 }
-
-
-
-
-
-
-
-
-

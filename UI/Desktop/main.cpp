@@ -1,3 +1,4 @@
+#include "Audio/AudioPlaybackEngine.hpp"
 #include "Audio/MicrophoneManager.hpp"
 #include "Audio/SpectrumAnalyzer.hpp"
 #include <QQmlContext>
@@ -43,6 +44,27 @@ int main(int argc, char *argv[])
         &spectrumAnalyzer
     );
 
+    AudioPlaybackEngine audioPlaybackEngine;
+
+    engine.rootContext()->setContextProperty(
+        "audioPlaybackEngine",
+        &audioPlaybackEngine
+    );
+
+    // Phase 4C: Synchronize EQ settings with audio playback.
+    QObject::connect(
+        &eqController,
+        &EqController::bandsChanged,
+        &audioPlaybackEngine,
+        [&eqController, &audioPlaybackEngine]() {
+            if (!audioPlaybackEngine.playing()) {
+                audioPlaybackEngine.configureEq(eqController.bands());
+            }
+        }
+    );
+
+    audioPlaybackEngine.configureEq(eqController.bands());
+
     engine.loadFromModule("CarDSP", "Main");
 
     if (engine.rootObjects().isEmpty())
@@ -50,6 +72,3 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
-
-
-
