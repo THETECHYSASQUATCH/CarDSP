@@ -87,3 +87,8 @@ target_include_directories(cardsp_output_device_test PRIVATE
 target_link_libraries(cardsp_output_device_test PRIVATE
     ole32
 )
+
+# CarDSP Windows application installation
+install(TARGETS cardsp_windows_audio
+    RUNTIME DESTINATION bin
+)
