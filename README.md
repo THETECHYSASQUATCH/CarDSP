@@ -1,5 +1,8 @@
 # CarDSP
 
+Latest Windows work: [PCM/EQ foundation checkpoint](PHASE_ONE_CHECKPOINT.md),
+including silent song tests and editable slider values (2026-10-26).
+
 Real-time DSP foundation and iPhone car-audio EQ application.
 
 For the current local development changes, platform support and known limits,
@@ -142,3 +145,41 @@ An unsigned IPA must be signed/re-signed with a valid Apple development identity
 ## Windows testing
 
 The Swift/iOS source requires Apple/Xcode tooling to compile and Apple tooling to perform native iOS code signing. GitHub Actions supplies the macOS/Xcode environment, allowing development from Windows while the cloud runner builds and, when valid signing assets are supplied, signs the IPA.
+
+<!-- CARDSP_STATUS_START -->
+## Development Status — Phase 4C
+
+**Status:** Windows desktop build and startup verified.
+
+### Implemented
+- Shared C++20 DSP library
+- 32-band parametric EQ interface
+- Peaking, low-pass, and high-pass biquad filters
+- Stereo DSP processing
+- Microphone input and spectrum visualization
+- Audio playback engine infrastructure
+- EQ configuration integration
+
+### Verification
+- Qt 6.12.0 with MinGW 13.1
+- CMake build completed successfully
+- CarDSPDesktop.exe launches without reported errors
+
+### Pending
+- Audible EQ processing verification
+- Hardware playback qualification (playback controls are implemented)
+- Live EQ adjustments
+- WAV, MP3, and FLAC decoding
+- macOS, Linux, iOS, and Android build verification
+
+### Windows Build
+Run from the CarDSP repository root:
+
+```powershell
+$env:Path = "C:\Qt\Tools\mingw1310_64\bin;C:\Qt\6.12.0\mingw_64\bin;$env:Path"
+cmake --build build/qt-desktop --parallel 4
+& ".\build\qt-desktop\CarDSPDesktop.exe"
+```
+
+Initial playback support targets raw 48 kHz stereo Float32 PCM.
+<!-- CARDSP_STATUS_END -->

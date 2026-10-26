@@ -29,6 +29,16 @@ if(CARDSP_BUILD_TESTS)
         add_compile_options(-UNDEBUG)
     endif()
 
+
+    add_executable(cardsp_crossover_tests tests/crossover_tests.cpp)
+    target_link_libraries(cardsp_crossover_tests PRIVATE cardsp_shared)
+    add_test(NAME cardsp_crossover_tests COMMAND cardsp_crossover_tests)
+    add_executable(cardsp_alignment_polarity_tests tests/alignment_polarity_tests.cpp)
+    target_link_libraries(cardsp_alignment_polarity_tests PRIVATE cardsp_shared)
+    add_test(NAME cardsp_alignment_polarity_tests COMMAND cardsp_alignment_polarity_tests)
+    add_executable(cardsp_routing_tests tests/routing_tests.cpp)
+    target_link_libraries(cardsp_routing_tests PRIVATE cardsp_shared)
+    add_test(NAME cardsp_routing_tests COMMAND cardsp_routing_tests)
     add_executable(cardsp_stereo_tests tests/stereo_processor_tests.cpp)
     target_link_libraries(cardsp_stereo_tests PRIVATE cardsp_shared)
     add_test(NAME cardsp_stereo_tests COMMAND cardsp_stereo_tests)
@@ -41,3 +51,13 @@ if(CARDSP_BUILD_TESTS)
     target_link_libraries(cardsp_dsp_chain_smoke PRIVATE cardsp_shared)
     add_test(NAME cardsp_dsp_chain_smoke COMMAND cardsp_dsp_chain_smoke)
 endif()
+
+# CarDSP portable PCM processing tool
+if(CARDSP_BUILD_TOOLS)
+    install(TARGETS cardsp_process_pcm
+        RUNTIME DESTINATION bin
+    )
+endif()
+
+
+
