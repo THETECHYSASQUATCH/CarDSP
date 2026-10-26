@@ -1,0 +1,19 @@
+ M SharedDSP/include/cardsp/dsp_chain.hpp
+ M UI/Desktop/CMakeLists.txt
+ M UI/Desktop/EqController.cpp
+ M UI/Desktop/Main.qml
+ M UI/Desktop/main.cpp
+?? Apply-CarDSP-Step1.ps1
+?? CarDSP_AudioEngine_Source.txt
+?? CarDSP_Backups/
+?? CarDSP_DSP_Filter_Source.txt
+?? CarDSP_EqController_Source.txt
+?? CarDSP_UI_Integration_Source.txt
+?? UI/Desktop/Audio/AudioPlaybackEngine.cpp
+?? UI/Desktop/Audio/AudioPlaybackEngine.cpp.phase4b-backup
+?? UI/Desktop/Audio/AudioPlaybackEngine.cpp.phase4c-backup
+?? UI/Desktop/Audio/AudioPlaybackEngine.hpp
+?? UI/Desktop/Audio/AudioPlaybackEngine.hpp.phase4b-backup
+?? UI/Desktop/Audio/AudioPlaybackEngine.hpp.phase4c-backup
+?? UI/Desktop/Main.qml.debug-backup
+?? UI/Desktop/main.cpp.phase4c-backup

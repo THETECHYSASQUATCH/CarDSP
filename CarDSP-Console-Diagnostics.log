@@ -1,0 +1,21 @@
+qt.core.plugin.factoryloader: checking directory path "C:/Users/thetechysasquatch/Documents/GitHub/CarDSP/build/qt-desktop/platforms" ...
+qt.core.plugin.factoryloader: looking at "qwindows.dll"
+qt.core.plugin.loader: Found metadata in lib C:/Users/thetechysasquatch/Documents/GitHub/CarDSP/build/qt-desktop/platforms/qwindows.dll, metadata=
+{
+    "IID": "org.qt-project.Qt.QPA.QPlatformIntegrationFactoryInterface.5.3",
+    "MetaData": {
+        "Keys": [
+            "windows"
+        ]
+    },
+    "archlevel": 2,
+    "className": "QWindowsIntegrationPlugin",
+    "debug": false,
+    "version": 396288
+}
+
+
+qt.core.plugin.factoryloader: Got keys from plugin meta data QList("windows")
+qt.core.library: "C:/Users/thetechysasquatch/Documents/GitHub/CarDSP/build/qt-desktop/platforms/qwindows.dll" loaded library
+qt.core.plugin.factoryloader: checking directory path "C:/Users/thetechysasquatch/Documents/GitHub/CarDSP/build/qt-desktop/platformthemes" ...
+ASSERT failure in QList::operator[]: "index out of range", file C:/Qt/6.12.0/mingw_64/include/QtCore/qlist.h, line 519

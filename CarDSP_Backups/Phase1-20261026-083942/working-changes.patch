@@ -1,0 +1,435 @@
+diff --git a/SharedDSP/include/cardsp/dsp_chain.hpp b/SharedDSP/include/cardsp/dsp_chain.hpp
+index b6b7f38..f285eab 100644
+--- a/SharedDSP/include/cardsp/dsp_chain.hpp
++++ b/SharedDSP/include/cardsp/dsp_chain.hpp
+@@ -104,6 +104,90 @@ inline BiquadCoefficients makePeakingEQ(float sampleRate, float frequency, float
+     };
+ }
+ 
++inline BiquadCoefficients makeNotch(
++    float sampleRate, float frequency, float q = 0.70710678f) noexcept
++{
++    if (!std::isfinite(sampleRate) || sampleRate < 8000 ||
++        sampleRate > 384000 || !std::isfinite(frequency) ||
++        !std::isfinite(q) || q <= 0)
++        return {};
++
++    frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
++    q = std::max(q, 0.001f);
++
++    const float w = 2.0f * std::numbers::pi_v<float>
++                    * frequency / sampleRate;
++    const float c = std::cos(w);
++    const float alpha = std::sin(w) / (2.0f * q);
++    const float a0 = 1.0f + alpha;
++
++    return {
++        1.0f / a0,
++        -2.0f * c / a0,
++        1.0f / a0,
++        -2.0f * c / a0,
++        (1.0f - alpha) / a0
++    };
++}
++
++inline BiquadCoefficients makeLowShelf(
++    float sampleRate, float frequency, float gainDB) noexcept
++{
++    if (!std::isfinite(sampleRate) || sampleRate < 8000 ||
++        sampleRate > 384000 || !std::isfinite(frequency) ||
++        !std::isfinite(gainDB) || gainDB < -96 || gainDB > 96)
++        return {};
++
++    frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
++
++    const float A = std::pow(10.0f, gainDB / 40.0f);
++    const float w = 2.0f * std::numbers::pi_v<float>
++                    * frequency / sampleRate;
++    const float c = std::cos(w);
++    const float alpha = std::sin(w) / std::sqrt(2.0f);
++    const float beta = 2.0f * std::sqrt(A) * alpha;
++
++    const float a0 = (A + 1.0f) +
++                     (A - 1.0f) * c + beta;
++
++    return {
++        A * ((A + 1.0f) - (A - 1.0f) * c + beta) / a0,
++        2.0f * A * ((A - 1.0f) - (A + 1.0f) * c) / a0,
++        A * ((A + 1.0f) - (A - 1.0f) * c - beta) / a0,
++        -2.0f * ((A - 1.0f) + (A + 1.0f) * c) / a0,
++        ((A + 1.0f) + (A - 1.0f) * c - beta) / a0
++    };
++}
++
++inline BiquadCoefficients makeHighShelf(
++    float sampleRate, float frequency, float gainDB) noexcept
++{
++    if (!std::isfinite(sampleRate) || sampleRate < 8000 ||
++        sampleRate > 384000 || !std::isfinite(frequency) ||
++        !std::isfinite(gainDB) || gainDB < -96 || gainDB > 96)
++        return {};
++
++    frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
++
++    const float A = std::pow(10.0f, gainDB / 40.0f);
++    const float w = 2.0f * std::numbers::pi_v<float>
++                    * frequency / sampleRate;
++    const float c = std::cos(w);
++    const float alpha = std::sin(w) / std::sqrt(2.0f);
++    const float beta = 2.0f * std::sqrt(A) * alpha;
++
++    const float a0 = (A + 1.0f) -
++                     (A - 1.0f) * c + beta;
++
++    return {
++        A * ((A + 1.0f) + (A - 1.0f) * c + beta) / a0,
++        -2.0f * A * ((A - 1.0f) + (A + 1.0f) * c) / a0,
++        A * ((A + 1.0f) + (A - 1.0f) * c - beta) / a0,
++        2.0f * ((A - 1.0f) - (A + 1.0f) * c) / a0,
++        ((A + 1.0f) - (A - 1.0f) * c - beta) / a0
++    };
++}
++
+ template <std::size_t MaxFilters = 40>
+ class FilterChain {
+ public:
+diff --git a/UI/Desktop/CMakeLists.txt b/UI/Desktop/CMakeLists.txt
+index 76c8b2e..497fbe4 100644
+--- a/UI/Desktop/CMakeLists.txt
++++ b/UI/Desktop/CMakeLists.txt
+@@ -5,11 +5,13 @@ project(CarDSPDesktop VERSION 0.1.0 LANGUAGES CXX)
+ set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia)
++find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 QuickDialogs2 Multimedia)
+ 
+ qt_standard_project_setup(REQUIRES 6.8)
+ 
+ qt_add_executable(CarDSPDesktop
++    Audio/AudioPlaybackEngine.cpp
++    Audio/AudioPlaybackEngine.hpp
+     Audio/MicrophoneManager.cpp
+     Audio/SpectrumAnalyzer.cpp
+     Audio/SpectrumAnalyzer.hpp
+@@ -33,7 +35,7 @@ target_link_libraries(CarDSPDesktop
+     PRIVATE
+         Qt6::Core
+         Qt6::Quick
+-        Qt6::QuickControls2
++        Qt6::QuickControls2 Qt6::QuickDialogs2
+         Qt6::Multimedia
+ )
+ 
+@@ -51,3 +53,5 @@ target_include_directories(CarDSPDesktop PRIVATE
+     "${CMAKE_CURRENT_SOURCE_DIR}/../../SharedDSP/include"
+ )
+ 
++
++
+diff --git a/UI/Desktop/EqController.cpp b/UI/Desktop/EqController.cpp
+index 3cfb8fd..a5fb628 100644
+--- a/UI/Desktop/EqController.cpp
++++ b/UI/Desktop/EqController.cpp
+@@ -391,7 +391,8 @@ QVariantList EqController::response() const
+ 
+         switch (band.type) {
+         case 1: { // Low shelf
+-            const double s = 2.0 * std::sqrt(A) * alpha;
++            const double shelfAlpha = sn / std::sqrt(2.0);
++            const double s = 2.0 * std::sqrt(A) * shelfAlpha;
+ 
+             c.b0 = A * ((A + 1) - (A - 1) * cs + s);
+             c.b1 = 2 * A * ((A - 1) - (A + 1) * cs);
+@@ -404,7 +405,8 @@ QVariantList EqController::response() const
+         }
+ 
+         case 2: { // High shelf
+-            const double s = 2.0 * std::sqrt(A) * alpha;
++            const double shelfAlpha = sn / std::sqrt(2.0);
++            const double s = 2.0 * std::sqrt(A) * shelfAlpha;
+ 
+             c.b0 = A * ((A + 1) + (A - 1) * cs + s);
+             c.b1 = -2 * A * ((A - 1) + (A + 1) * cs);
+@@ -519,3 +521,4 @@ bool EqController::activatePreset(const QString &name, QObject *manager)
+ 
+     return loadSettings();
+ }
++
+diff --git a/UI/Desktop/Main.qml b/UI/Desktop/Main.qml
+index 38c5d11..7c14a8e 100644
+--- a/UI/Desktop/Main.qml
++++ b/UI/Desktop/Main.qml
+@@ -1,3 +1,4 @@
++import QtQuick.Dialogs
+ import CarDSP
+ import QtQuick.Window
+ import QtQuick
+@@ -5,6 +6,152 @@ import QtQuick.Controls
+ import QtQuick.Layouts
+ 
+ ApplicationWindow {
++    // Phase 4D - Native audio file picker
++    FileDialog {
++        id: pcmFileDialog
++        title: "Select PCM Audio File"
++        fileMode: FileDialog.OpenFile
++        nameFilters: ["Raw PCM Audio (*.pcm *.raw)", "All Files (*)"]
++        onAccepted: {
++            window.selectedPcmFile = audioPlaybackEngine.localFilePath(selectedFile)
++        }
++    }
++
++    function configurePlaybackEq() {
++        if (!audioPlaybackEngine) {
++            console.error("CarDSP: Audio playback engine unavailable")
++            return false
++        }
++
++        const bands = []
++
++        for (let i = 0; i < eqBands.count; ++i) {
++            const band = eqBands.get(i)
++
++            bands.push({
++                enabled: band.enabled,
++                frequency: band.frequency,
++                gain: band.gain,
++                q: band.q,
++                type: band.type
++            })
++        }
++
++        const success = audioPlaybackEngine.configureEq(bands)
++
++        console.log("CarDSP: EQ configuration:", success,
++                    "Bands:", bands.length)
++
++        if (!success) {
++            console.error("CarDSP:", audioPlaybackEngine.lastError)
++        }
++
++        return success
++    }
++    // Phase 4D - Audio playback controls
++    property string selectedPcmFile: ""
++
++    header: Rectangle {
++        id: playbackToolbar
++        height: 112
++        color: "#172631"
++
++        ColumnLayout {
++            anchors.fill: parent
++            anchors.margins: 10
++            spacing: 6
++
++            RowLayout {
++                Layout.fillWidth: true
++                spacing: 8
++
++                Label { text: "Audio Playback"; color: "white"; font.bold: true }
++
++                TextField {
++                    id: pcmPath
++                    Layout.fillWidth: true
++                    placeholderText: "Path to 48 kHz stereo Float32 PCM file"
++                    text: window.selectedPcmFile
++                    onEditingFinished: window.selectedPcmFile = text
++                }
++
++                Button {
++                    text: "Browse..."
++                    onClicked: pcmFileDialog.open()
++                }
++
++                ComboBox {
++                    id: outputSelector
++                    Layout.preferredWidth: 200
++                    model: audioPlaybackEngine ? audioPlaybackEngine.outputDevices : []
++                    textRole: "name"
++                }
++
++                Button {
++                    text: "Play"
++                    enabled: audioPlaybackEngine && !audioPlaybackEngine.playing
++                             && window.selectedPcmFile.length > 0
++                    onClicked: {
++                        if (window.configurePlaybackEq()) {
++                            console.log("CarDSP: Starting playback:",
++                                        window.selectedPcmFile)
++
++                            const started = audioPlaybackEngine.playPcm(
++                                window.selectedPcmFile,
++                                outputSelector.currentIndex
++                            )
++
++                            console.log("CarDSP: Playback started:", started)
++
++                            if (!started) {
++                                console.error("CarDSP playback error:",
++                                              audioPlaybackEngine.lastError)
++                            }
++                        }
++                    }
++                }
++
++                Button {
++                    text: "Stop"
++                    enabled: audioPlaybackEngine && audioPlaybackEngine.playing
++                    onClicked: audioPlaybackEngine.stop()
++                }
++            }
++
++            RowLayout {
++                Layout.fillWidth: true
++                spacing: 10
++
++                Label { text: "Volume"; color: "white" }
++                Slider {
++                    Layout.preferredWidth: 180
++                    from: 0
++                    to: 1
++                    value: audioPlaybackEngine ? audioPlaybackEngine.volume : 0.25
++                    onMoved: audioPlaybackEngine.volume = value
++                }
++
++                CheckBox {
++                    text: "Bypass EQ"
++                    checked: audioPlaybackEngine ? audioPlaybackEngine.bypass : false
++                    onToggled: audioPlaybackEngine.bypass = checked
++                }
++
++                Button {
++                    text: "Refresh Outputs"
++                    onClicked: audioPlaybackEngine.refreshOutputDevices()
++                }
++
++                Label {
++                    Layout.fillWidth: true
++                    color: "#ff8888"
++                    elide: Text.ElideRight
++                    text: audioPlaybackEngine ? audioPlaybackEngine.lastError : ""
++                }
++            }
++        }
++    }
++
+     // Phase 3A.3 - Microphone capture controls
+     footer: Rectangle {
+         id: microphonePanel
+@@ -215,8 +362,16 @@ ApplicationWindow {
+         responseGraph.requestPaint()
+     }
+     Component.onCompleted: {
+-        eqController.channel = selectedChannel
+-        refreshBands()
++        console.log("CarDSP QML controller diagnostics:")
++        console.log("eqController:", eqController)
++        console.log("microphoneManager:", microphoneManager)
++        console.log("spectrumAnalyzer:", spectrumAnalyzer)
++        console.log("audioPlaybackEngine:", audioPlaybackEngine)
++
++        if (eqController) {
++            eqController.channel = selectedChannel
++            refreshBands()
++        }
+     }
+ 
+     Connections {
+@@ -507,8 +662,8 @@ ApplicationWindow {
+                     }
+ 
+                     Label {
+-                        text: microphoneManager.capturing ? "MIC LIVE" : "MIC STOPPED"
+-                        color: microphoneManager.capturing ? window.accent : "#9cb2bf"
++                        text: (microphoneManager && microphoneManager.capturing) ? "MIC LIVE" : "MIC STOPPED"
++                        color: (microphoneManager && microphoneManager.capturing) ? window.accent : "#9cb2bf"
+                     }
+                 }
+                 Rectangle {
+@@ -590,7 +745,7 @@ ApplicationWindow {
+                         anchors.fill: parent
+                         anchors.margins: 10
+                         visible: window.graphMode === "spectrum"
+-                        spectrumData: spectrumAnalyzer.bands
++                        spectrumData: spectrumAnalyzer ? spectrumAnalyzer.bands : []
+                     }
+                 }
+ 
+@@ -614,7 +769,14 @@ ApplicationWindow {
+                         anchors.margins: 12
+                         clip: true
+ 
++                        contentWidth: availableWidth
++                        contentHeight: eqGrid.implicitHeight
++
++                        ScrollBar.vertical.policy: ScrollBar.AlwaysOn
++                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
++
+                         GridLayout {
++                            id: eqGrid
+                             width: Math.max(200, eqScrollView.availableWidth)
+                             columns: Math.max(1, Math.floor(eqScrollView.availableWidth / 212))
+                             columnSpacing: 12
+@@ -837,4 +999,16 @@ ApplicationWindow {
+ 
+ 
+ 
++
++
++
++
++
++
++
++
++
++
++
++
+ 
+diff --git a/UI/Desktop/main.cpp b/UI/Desktop/main.cpp
+index 7f6e5c0..1bbeb36 100644
+--- a/UI/Desktop/main.cpp
++++ b/UI/Desktop/main.cpp
+@@ -1,3 +1,4 @@
++#include "Audio/AudioPlaybackEngine.hpp"
+ #include "Audio/MicrophoneManager.hpp"
+ #include "Audio/SpectrumAnalyzer.hpp"
+ #include <QQmlContext>
+@@ -43,6 +44,27 @@ int main(int argc, char *argv[])
+         &spectrumAnalyzer
+     );
+ 
++    AudioPlaybackEngine audioPlaybackEngine;
++
++    engine.rootContext()->setContextProperty(
++        "audioPlaybackEngine",
++        &audioPlaybackEngine
++    );
++
++        // Phase 4C: Synchronize EQ settings with audio playback.
++    QObject::connect(
++        &eqController,
++        &EqController::bandsChanged,
++        &audioPlaybackEngine,
++        [&eqController, &audioPlaybackEngine]() {
++            if (!audioPlaybackEngine.playing()) {
++                audioPlaybackEngine.configureEq(eqController.bands());
++            }
++        }
++    );
++
++    audioPlaybackEngine.configureEq(eqController.bands());
++
+     engine.loadFromModule("CarDSP", "Main");
+ 
+     if (engine.rootObjects().isEmpty())
+@@ -53,3 +75,6 @@ int main(int argc, char *argv[])
+ 
+ 
+ 
++
++
++

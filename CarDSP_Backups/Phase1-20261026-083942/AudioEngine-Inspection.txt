@@ -1,0 +1,422 @@
+=== CarDSP Phase 1 Audio Engine ===
+Branch: feature/realtime-audio-engine
+Backup: CarDSP_Backups\Phase1-20261026-083942
+
+=== AudioPlaybackEngine.cpp ===
+
+   1: #include "AudioPlaybackEngine.hpp"
+   2: 
+   3: #include <QAudio>
+   4: #include <QIODevice>
+   5: #include <QDebug>
+   6: #include <QVariantMap>
+   7: 
+   8: #include <algorithm>
+   9: #include <array>
+  10: #include <cstring>
+  11: 
+  12: class PcmStreamDevice final : public QIODevice
+  13: {
+  14: public:
+  15:     PcmStreamDevice(
+  16:         QFile *file,
+  17:         cardsp::StereoProcessor<> *processor,
+  18:         QObject *parent = nullptr)
+  19:         : QIODevice(parent),
+  20:           m_file(file),
+  21:           m_processor(processor)
+  22:     {
+  23:     }
+  24: 
+  25:     void setBypass(bool bypass) noexcept
+  26:     {
+  27:         m_bypass = bypass;
+  28:     }
+  29: 
+  30:     bool atEnd() const override
+  31:     {
+  32:         return !m_file || m_file->atEnd();
+  33:     }
+  34: 
+  35:     bool isSequential() const override
+  36:     {
+  37:         return true;
+  38:     }
+  39: 
+  40: protected:
+  41:     qint64 readData(char *data, qint64 maxSize) override
+  42:     {
+  43:         if (!m_file || !data || maxSize <= 0)
+  44:             return 0;
+  45: 
+  46:         constexpr qint64 frameBytes = 8;
+  47:         constexpr qint64 bufferBytes = 8192;
+  48: 
+  49:         const qint64 requested =
+  50:             std::min((maxSize / frameBytes) * frameBytes,
+  51:                      bufferBytes);
+  52: 
+  53:         if (requested <= 0)
+  54:             return 0;
+  55: 
+  56:         const qint64 bytesRead =
+  57:             m_file->read(data, requested);
+  58: 
+  59:         static int readLogCount = 0;
+  60:         if (readLogCount < 20) {
+  61:             qInfo() << "CarDSP PCM read:"
+  62:                     << "requested=" << requested
+  63:                     << "bytesRead=" << bytesRead
+  64:                     << "position=" << m_file->pos()
+  65:                     << "size=" << m_file->size();
+  66:             ++readLogCount;
+  67:         }
+  68: 
+  69:         if (bytesRead <= 0)
+  70:             return bytesRead;
+  71: 
+  72:         if (!m_bypass && m_processor) {
+  73:             const std::size_t sampleCount =
+  74:                 static_cast<std::size_t>(
+  75:                     bytesRead / sizeof(float)
+  76:                 );
+  77: 
+  78:             const std::size_t frameCount =
+  79:                 sampleCount / 2;
+  80: 
+  81:             std::memcpy(
+  82:                 m_samples.data(),
+  83:                 data,
+  84:                 static_cast<std::size_t>(bytesRead)
+  85:             );
+  86: 
+  87:             m_processor->processInterleaved(
+  88:                 m_samples.data(),
+  89:                 frameCount,
+  90:                 2
+  91:             );
+  92: 
+  93:             std::memcpy(
+  94:                 data,
+  95:                 m_samples.data(),
+  96:                 static_cast<std::size_t>(bytesRead)
+  97:             );
+  98:         }
+  99: 
+ 100:         return bytesRead;
+ 101:     }
+ 102: 
+ 103:     qint64 writeData(const char *, qint64) override
+ 104:     {
+ 105:         return -1;
+ 106:     }
+ 107: 
+ 108: private:
+ 109:     QFile *m_file = nullptr;
+ 110:     cardsp::StereoProcessor<> *m_processor = nullptr;
+ 111: 
+ 112:     bool m_bypass = false;
+ 113: 
+ 114:     // 8192 bytes / 4 bytes per Float32 sample.
+ 115:     std::array<float, 2048> m_samples{};
+ 116: };
+ 117: 
+ 118: AudioPlaybackEngine::AudioPlaybackEngine(QObject *parent)
+ 119:     : QObject(parent)
+ 120: {
+ 121:     refreshOutputDevices();
+ 122: 
+ 123:     connect(
+ 124:         &m_mediaDevices,
+ 125:         &QMediaDevices::audioOutputsChanged,
+ 126:         this,
+ 127:         &AudioPlaybackEngine::refreshOutputDevices
+ 128:     );
+ 129: }
+ 130: 
+ 131: AudioPlaybackEngine::~AudioPlaybackEngine()
+ 132: {
+ 133:     stop();
+ 134: }
+ 135: 
+ 136: QVariantList AudioPlaybackEngine::outputDevices() const
+ 137: {
+ 138:     QVariantList result;
+ 139: 
+ 140:     for (int i = 0; i < m_devices.size(); ++i) {
+ 141:         QVariantMap item;
+ 142:         item["index"] = i;
+ 143:         item["name"] = m_devices[i].description();
+ 144:         result.append(item);
+ 145:     }
+ 146: 
+ 147:     return result;
+ 148: }
+ 149: 
+ 150: void AudioPlaybackEngine::refreshOutputDevices()
+ 151: {
+ 152:     m_devices = QMediaDevices::audioOutputs();
+ 153:     emit outputDevicesChanged();
+ 154: }
+ 155: 
+ 156: void AudioPlaybackEngine::setError(const QString &message)
+ 157: {
+ 158:     if (m_lastError == message)
+ 159:         return;
+ 160: 
+ 161:     m_lastError = message;
+ 162:     emit lastErrorChanged();
+ 163: }
+ 164: 
+ 165: void AudioPlaybackEngine::setBypass(bool bypass)
+ 166: {
+ 167:     if (m_bypass == bypass)
+ 168:         return;
+ 169: 
+ 170:     m_bypass = bypass;
+ 171: 
+ 172:     if (m_stream)
+ 173:         m_stream->setBypass(bypass);
+ 174: 
+ 175:     emit bypassChanged();
+ 176: }
+ 177: 
+ 178: void AudioPlaybackEngine::setVolume(double volume)
+ 179: {
+ 180:     volume = std::clamp(volume, 0.0, 1.0);
+ 181: 
+ 182:     if (m_volume == volume)
+ 183:         return;
+ 184: 
+ 185:     m_volume = volume;
+ 186: 
+ 187:     if (m_sink)
+ 188:         m_sink->setVolume(static_cast<float>(volume));
+ 189: 
+ 190:     emit volumeChanged();
+ 191: }
+ 192: 
+ 193: bool AudioPlaybackEngine::configureEq(const QVariantList &bands)
+ 194: {
+ 195:     if (m_playing) {
+ 196:         setError("Stop playback before configuring EQ.");
+ 197:         return false;
+ 198:     }
+ 199: 
+ 200:     if (bands.size() > 40) {
+ 201:         setError("Too many EQ filters.");
+ 202:         return false;
+ 203:     }
+ 204: 
+ 205:     m_eqBands = bands;
+ 206:     setError(QString());
+ 207:     return true;
+ 208: }
+ 209: bool AudioPlaybackEngine::playPcm(
+ 210:     const QString &path,
+ 211:     int deviceIndex)
+ 212: {
+ 213:     stop();
+ 214:     setError(QString());
+ 215: 
+ 216:     if (deviceIndex < 0 || deviceIndex >= m_devices.size()) {
+ 217:         setError("Invalid output device index.");
+ 218:         return false;
+ 219:     }
+ 220: 
+ 221:     auto file = std::make_unique<QFile>(path);
+ 222: 
+ 223:     if (!file->open(QIODevice::ReadOnly)) {
+ 224:         setError("Unable to open PCM audio file.");
+ 225:         return false;
+ 226:     }
+ 227: 
+ 228:     if (file->size() % 8 != 0) {
+ 229:         setError(
+ 230:             "PCM file must contain complete stereo Float32 frames."
+ 231:         );
+ 232:         return false;
+ 233:     }
+ 234: 
+ 235:     QAudioFormat format;
+ 236:     format.setSampleRate(48000);
+ 237:     format.setChannelCount(2);
+ 238:     format.setSampleFormat(QAudioFormat::Float);
+ 239: 
+ 240:     const QAudioDevice device = m_devices[deviceIndex];
+ 241: 
+ 242:     if (!device.isFormatSupported(format)) {
+ 243:         setError(
+ 244:             "Output device does not support 48 kHz stereo Float32."
+ 245:         );
+ 246:         return false;
+ 247:     }
+ 248: 
+ 249:     m_file = std::move(file);
+ 250:     m_processor.clear();
+ 251: 
+ 252:     constexpr float sampleRate = 48000.0f;
+ 253: 
+ 254:     for (const QVariant &entry : m_eqBands) {
+ 255:         const QVariantMap band = entry.toMap();
+ 256: 
+ 257:         if (!band.value("enabled", true).toBool())
+ 258:             continue;
+ 259: 
+ 260:         const float frequency =
+ 261:             band.value("frequency", 1000.0).toFloat();
+ 262: 
+ 263:         const float gain =
+ 264:             band.value("gain", 0.0).toFloat();
+ 265: 
+ 266:         const float q =
+ 267:             band.value("q", 1.41).toFloat();
+ 268: 
+ 269:         const int type =
+ 270:             band.value("type", 0).toInt();
+ 271: 
+ 272:         cardsp::BiquadCoefficients coefficients;
+ 273: 
+ 274:         switch (type) {
+ 275:         case 0:
+ 276:             coefficients = cardsp::makePeakingEQ(
+ 277:                 sampleRate, frequency, q, gain);
+ 278:             break;
+ 279:         case 1:
+ 280:             coefficients = cardsp::makeLowShelf(
+ 281:                 sampleRate, frequency, gain);
+ 282:             break;
+ 283:         case 2:
+ 284:             coefficients = cardsp::makeHighShelf(
+ 285:                 sampleRate, frequency, gain);
+ 286:             break;
+ 287:         case 3:
+ 288:             coefficients = cardsp::makeLowPass(
+ 289:                 sampleRate, frequency, q);
+ 290:             break;
+ 291:         case 4:
+ 292:             coefficients = cardsp::makeHighPass(
+ 293:                 sampleRate, frequency, q);
+ 294:             break;
+ 295:         case 5:
+ 296:             coefficients = cardsp::makeNotch(
+ 297:                 sampleRate, frequency, q);
+ 298:             break;
+ 299:         default:
+ 300:             setError("Unsupported EQ filter type.");
+ 301:             stop();
+ 302:             return false;
+ 303:         }
+ 304: 
+ 305:         if (!m_processor.add(coefficients)) {
+ 306:             setError("Unable to add EQ filter.");
+ 307:             stop();
+ 308:             return false;
+ 309:         }
+ 310:     }
+ 311: 
+ 312:     m_processor.reset();
+ 313: 
+ 314:     m_sink = std::make_unique<QAudioSink>(
+ 315:         device,
+ 316:         format,
+ 317:         this
+ 318:     );
+ 319: 
+ 320:     m_sink->setVolume(static_cast<float>(m_volume));
+ 321: 
+ 322:     m_stream = std::make_unique<PcmStreamDevice>(
+ 323:         m_file.get(),
+ 324:         &m_processor
+ 325:     );
+ 326: 
+ 327:     m_stream->setBypass(m_bypass);
+ 328: 
+ 329:     if (!m_stream->open(QIODevice::ReadOnly)) {
+ 330:         setError("Unable to open PCM stream.");
+ 331:         stop();
+ 332:         return false;
+ 333:     }
+ 334: 
+ 335:     connect(
+ 336:         m_sink.get(),
+ 337:         &QAudioSink::stateChanged,
+ 338:         this,
+ 339:         [this](QAudio::State state) {
+ 340:             qInfo() << "CarDSP sink state:"
+ 341:                     << static_cast<int>(state)
+ 342:                     << "error="
+ 343:                     << (m_sink ? static_cast<int>(m_sink->error()) : -1)
+ 344:                     << "filePosition="
+ 345:                     << (m_file ? m_file->pos() : -1)
+ 346:                     << "fileSize="
+ 347:                     << (m_file ? m_file->size() : -1);
+ 348: 
+ 349:             if (!m_sink)
+ 350:                 return;
+ 351: 
+ 352:             if (state == QAudio::IdleState) {
+ 353:                 if (m_file && m_file->atEnd()) {
+ 354:                     qInfo() << "CarDSP: End of PCM file reached.";
+ 355:                     stop();
+ 356:                 } else {
+ 357:                     qWarning() << "CarDSP: Sink idle before EOF.";
+ 358:                 }
+ 359:             } else if (state == QAudio::StoppedState &&
+ 360:                        m_sink->error() != QAudio::NoError) {
+ 361:                 setError("Audio output stopped with an error.");
+ 362:                 stop();
+ 363:             }
+ 364:         },
+ 365:         Qt::QueuedConnection
+ 366:     );
+ 367: 
+ 368:     qInfo() << "CarDSP output device:" << device.description();
+ 369:     qInfo() << "CarDSP output format:"
+ 370:             << format.sampleRate()
+ 371:             << format.channelCount()
+ 372:             << format.sampleFormat();
+ 373: 
+ 374:     qInfo() << "CarDSP TEST: bypassing custom PCM stream";
+ 375:     m_sink->start(m_file.get());
+ 376: 
+ 377:     qInfo() << "CarDSP sink after start:"
+ 378:             << "state=" << static_cast<int>(m_sink->state())
+ 379:             << "error=" << static_cast<int>(m_sink->error())
+ 380:             << "processedUSecs=" << m_sink->processedUSecs();
+ 381: 
+ 382:     if (m_sink->error() != QAudio::NoError) {
+ 383:         setError("Audio output failed to start.");
+ 384:         stop();
+ 385:         return false;
+ 386:     }
+ 387: 
+ 388:     m_playing = true;
+ 389:     emit playingChanged();
+ 390: 
+ 391:     return true;
+ 392: }
+ 393: 
+ 394: void AudioPlaybackEngine::stop()
+ 395: {
+ 396:     if (m_sink) {
+ 397:         m_sink->stop();
+ 398:         m_sink.reset();
+ 399:     }
+ 400: 
+ 401:     if (m_stream) {
+ 402:         m_stream->close();
+ 403:         m_stream.reset();
+ 404:     }
+ 405: 
+ 406:     m_file.reset();
+ 407: 
+ 408:     if (m_playing) {
+ 409:         m_playing = false;
+ 410:         emit playingChanged();
+ 411:     }
+ 412: }
+ 413: 
+ 414: 
+ 415: 
+ 416: 
