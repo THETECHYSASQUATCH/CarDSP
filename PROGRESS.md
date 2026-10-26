@@ -1,3 +1,10 @@
+# Current checkpoint — 2026-10-26
+
+Windows PCM/EQ foundation software checks passed. See
+[checkpoint scope, test results and remaining hardware work](PHASE_ONE_CHECKPOINT.md).
+Playback controls and editable unit-aware values are implemented. Live EQ and
+general audio decoding remain future work. Earlier progress notes follow.
+
 # CarDSP Development Progress
 
 ## Phase 4C — EQ Integration

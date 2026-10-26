@@ -104,6 +104,90 @@ inline BiquadCoefficients makePeakingEQ(float sampleRate, float frequency, float
     };
 }
 
+inline BiquadCoefficients makeNotch(
+    float sampleRate, float frequency, float q = 0.70710678f) noexcept
+{
+    if (!std::isfinite(sampleRate) || sampleRate < 8000 ||
+        sampleRate > 384000 || !std::isfinite(frequency) ||
+        !std::isfinite(q) || q <= 0)
+        return {};
+
+    frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
+    q = std::max(q, 0.001f);
+
+    const float w = 2.0f * std::numbers::pi_v<float>
+                    * frequency / sampleRate;
+    const float c = std::cos(w);
+    const float alpha = std::sin(w) / (2.0f * q);
+    const float a0 = 1.0f + alpha;
+
+    return {
+        1.0f / a0,
+        -2.0f * c / a0,
+        1.0f / a0,
+        -2.0f * c / a0,
+        (1.0f - alpha) / a0
+    };
+}
+
+inline BiquadCoefficients makeLowShelf(
+    float sampleRate, float frequency, float gainDB) noexcept
+{
+    if (!std::isfinite(sampleRate) || sampleRate < 8000 ||
+        sampleRate > 384000 || !std::isfinite(frequency) ||
+        !std::isfinite(gainDB) || gainDB < -96 || gainDB > 96)
+        return {};
+
+    frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
+
+    const float A = std::pow(10.0f, gainDB / 40.0f);
+    const float w = 2.0f * std::numbers::pi_v<float>
+                    * frequency / sampleRate;
+    const float c = std::cos(w);
+    const float alpha = std::sin(w) / std::sqrt(2.0f);
+    const float beta = 2.0f * std::sqrt(A) * alpha;
+
+    const float a0 = (A + 1.0f) +
+                     (A - 1.0f) * c + beta;
+
+    return {
+        A * ((A + 1.0f) - (A - 1.0f) * c + beta) / a0,
+        2.0f * A * ((A - 1.0f) - (A + 1.0f) * c) / a0,
+        A * ((A + 1.0f) - (A - 1.0f) * c - beta) / a0,
+        -2.0f * ((A - 1.0f) + (A + 1.0f) * c) / a0,
+        ((A + 1.0f) + (A - 1.0f) * c - beta) / a0
+    };
+}
+
+inline BiquadCoefficients makeHighShelf(
+    float sampleRate, float frequency, float gainDB) noexcept
+{
+    if (!std::isfinite(sampleRate) || sampleRate < 8000 ||
+        sampleRate > 384000 || !std::isfinite(frequency) ||
+        !std::isfinite(gainDB) || gainDB < -96 || gainDB > 96)
+        return {};
+
+    frequency = std::clamp(frequency, 1.0f, sampleRate * 0.499f);
+
+    const float A = std::pow(10.0f, gainDB / 40.0f);
+    const float w = 2.0f * std::numbers::pi_v<float>
+                    * frequency / sampleRate;
+    const float c = std::cos(w);
+    const float alpha = std::sin(w) / std::sqrt(2.0f);
+    const float beta = 2.0f * std::sqrt(A) * alpha;
+
+    const float a0 = (A + 1.0f) -
+                     (A - 1.0f) * c + beta;
+
+    return {
+        A * ((A + 1.0f) + (A - 1.0f) * c + beta) / a0,
+        -2.0f * A * ((A - 1.0f) + (A + 1.0f) * c) / a0,
+        A * ((A + 1.0f) + (A - 1.0f) * c - beta) / a0,
+        2.0f * ((A - 1.0f) - (A + 1.0f) * c) / a0,
+        ((A + 1.0f) - (A - 1.0f) * c - beta) / a0
+    };
+}
+
 template <std::size_t MaxFilters = 40>
 class FilterChain {
 public:

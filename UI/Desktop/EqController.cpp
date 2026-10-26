@@ -391,7 +391,8 @@ QVariantList EqController::response() const
 
         switch (band.type) {
         case 1: { // Low shelf
-            const double s = 2.0 * std::sqrt(A) * alpha;
+            const double shelfAlpha = sn / std::sqrt(2.0);
+            const double s = 2.0 * std::sqrt(A) * shelfAlpha;
 
             c.b0 = A * ((A + 1) - (A - 1) * cs + s);
             c.b1 = 2 * A * ((A - 1) - (A + 1) * cs);
@@ -404,7 +405,8 @@ QVariantList EqController::response() const
         }
 
         case 2: { // High shelf
-            const double s = 2.0 * std::sqrt(A) * alpha;
+            const double shelfAlpha = sn / std::sqrt(2.0);
+            const double s = 2.0 * std::sqrt(A) * shelfAlpha;
 
             c.b0 = A * ((A + 1) + (A - 1) * cs + s);
             c.b1 = -2 * A * ((A - 1) + (A + 1) * cs);

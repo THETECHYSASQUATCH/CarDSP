@@ -1,5 +1,8 @@
 # CarDSP
 
+Latest Windows work: [PCM/EQ foundation checkpoint](PHASE_ONE_CHECKPOINT.md),
+including silent song tests and editable slider values (2026-10-26).
+
 Real-time DSP foundation and iPhone car-audio EQ application.
 
 For the current local development changes, platform support and known limits,
@@ -164,7 +167,7 @@ The Swift/iOS source requires Apple/Xcode tooling to compile and Apple tooling t
 
 ### Pending
 - Audible EQ processing verification
-- Phase 4D playback controls
+- Hardware playback qualification (playback controls are implemented)
 - Live EQ adjustments
 - WAV, MP3, and FLAC decoding
 - macOS, Linux, iOS, and Android build verification
