@@ -1,29 +1,9 @@
-# CarDSP Active Task: 32-Band EQ
+# Active task — documentation handoff only
 
-## Objective
-Fix the existing 32-band equalizer layout.
+The user stopped feature coding on 2026-10-26. Do not resume the old 32-band layout task or the unfinished Phase 1 implementation automatically.
 
-## Target
-UI/Desktop/Main.qml
+- Read [AGENTS.md](../../AGENTS.md) for current rules and authorization boundaries.
+- Read [DEVELOPMENT_STATUS.md](../../DEVELOPMENT_STATUS.md) for the single Phase 1 acceptance checklist and exact stop point.
+- [Continuation prompt](../../docs/PHASE_ONE_CONTINUATION_PROMPT.md) is ready for the user to submit when coding should resume.
 
-## Requirements
-- Make all 32 EQ bands accessible through horizontal scrolling.
-- Replace the EQ GridLayout with a RowLayout.
-- Preserve the existing Repeater delegate and all its controls.
-- Preserve draggable gain sliders and editable numeric dB fields.
-- Preserve existing EqController bindings.
-- Preserve audio playback, volume, and DSP processing.
-- Do not modify unrelated files.
-
-## Workflow
-1. Inspect the existing EQ layout.
-2. Make a minimal targeted edit.
-3. Review the Git diff.
-4. Build with CMake.
-5. Report results.
-
-## Safety
-- Do not overwrite the entire Main.qml file.
-- Do not commit or push to GitHub.
-- Request approval for edits and shell commands.
-- Do not claim a change was made without verifying the file.
+Preserve the unfinished source changes included in the requested work-in-progress snapshot. The desktop build completed, but tests for that modified implementation have not run. Phase 1 remains incomplete. The user explicitly requested publication of this snapshot. That request does not resume coding or authorize future automatic commits or pushes.

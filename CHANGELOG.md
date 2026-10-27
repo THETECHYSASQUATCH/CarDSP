@@ -2,6 +2,12 @@
 
 All release notes are maintained in this file. `VERSION` is the source version. This branch has no documentation-sync workflow; update version references explicitly.
 
+## Unreleased — documentation handoff (2026-10-26)
+
+- Consolidate overlapping progress and checkpoint notes into DEVELOPMENT_STATUS.md; keep the roadmap and release history separate.
+- Replace duplicated AGENTS.md instructions and add a Phase 1 continuation prompt.
+- Record uncommitted playback changes as build-only verified; coding stopped before new tests or hardware qualification. Phase 1 is not complete.
+
 ## Unreleased — repository maintenance (2026-10-26)
 
 - Refresh README links, platform boundaries, Windows build instructions, and actual CI coverage.
@@ -12,7 +18,7 @@ All release notes are maintained in this file. `VERSION` is the source version. 
 
 ## 0.1.0-alpha.7 — source checkpoint
 
-`VERSION` records alpha.7. See PHASE_ONE_CHECKPOINT.md for the Windows PCM/EQ foundation, software validation, and remaining hardware checks. Publication of an alpha.7 release is not verified by this maintenance entry.
+`VERSION` records alpha.7. See DEVELOPMENT_STATUS.md for the Windows PCM/EQ foundation, software validation, and remaining hardware checks. Publication of an alpha.7 release is not verified by this maintenance entry.
 
 ## 0.1.0-alpha.6
 

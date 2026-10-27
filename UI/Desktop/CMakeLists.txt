@@ -12,6 +12,10 @@ qt_standard_project_setup(REQUIRES 6.8)
 qt_add_executable(CarDSPDesktop
     Audio/AudioPlaybackEngine.cpp
     Audio/AudioPlaybackEngine.hpp
+    Audio/PlaybackOutput.cpp
+    Audio/PlaybackOutput.hpp
+    Audio/AudioFileDecoder.cpp
+    Audio/AudioFileDecoder.hpp
     Audio/MicrophoneManager.cpp
     Audio/SpectrumAnalyzer.cpp
     Audio/SpectrumAnalyzer.hpp
@@ -71,3 +75,12 @@ if(BUILD_TESTING)
             -o -,txt)
     endif()
 endif()
+
+# Install all Qt/QML and multimedia runtime dependencies, including native dialogs.
+install(TARGETS CarDSPDesktop RUNTIME DESTINATION bin)
+qt_generate_deploy_qml_app_script(
+    TARGET CarDSPDesktop
+    OUTPUT_SCRIPT desktop_deploy_script
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${desktop_deploy_script})

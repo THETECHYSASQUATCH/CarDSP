@@ -8,7 +8,9 @@ The version recorded in [VERSION](VERSION) is **0.1.0-alpha.7**. This identifies
 
 ## Current development
 
-Work continues on `development/phase_one`. See the [PCM/EQ checkpoint](PHASE_ONE_CHECKPOINT.md), [development status](DEVELOPMENT_STATUS.md), and [project checklist](docs/PROJECT_CHECKLIST.md).
+**Phase 1 is incomplete.** Coding is stopped at the user's request. Local playback changes compile but have not been tested; the capabilities below describe the published baseline. See the [continuation prompt](docs/PHASE_ONE_CONTINUATION_PROMPT.md) when ready to resume.
+
+Work continues on `development/phase_one`. See the [consolidated development status](DEVELOPMENT_STATUS.md) and [roadmap](docs/PROJECT_CHECKLIST.md).
 
 - Windows desktop: 32-band EQ interface, raw 48 kHz stereo Float32 PCM playback, output selection, volume, and EQ bypass.
 - Shared DSP: biquad filters, stereo processing, crossovers, alignment, polarity, routing, and a command-line PCM adapter.

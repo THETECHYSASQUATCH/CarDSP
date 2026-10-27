@@ -4,7 +4,7 @@
 #include <QString>
 #include "cardsp/stereo_processor.hpp"
 
-// Called only while processing is stopped; shared by playback and silent tests.
+// Build a detached configuration; the stream adopts it at a processing boundary.
 inline bool configurePlaybackProcessor(cardsp::StereoProcessor<>& processor,
                                        const QVariantList& bands, QString& error) {
     processor.clear();

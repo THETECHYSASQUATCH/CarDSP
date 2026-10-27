@@ -1,82 +1,122 @@
-# Development status — 2026-10-25
+# CarDSP development status
 
-Base: `9967cdab09655d3123f68323e0cdc7cde91cc007` from `main`.
-Changes in this workspace are not a published release.
+Updated: 2026-10-26 (America/Chicago).
 
-## Findings
+## Current decision and repository
 
-The repository already had a Swift DSP engine, Apple UI and MusicKit coordinator,
-plus a small independent C++20 filter library. The Apple playback controller
-started an empty graph and never used its DSP argument. Windows had no audio host.
-The portable Release smoke tests used assertions, which could be compiled out.
+**Phase 1 is IN PROGRESS. Coding is stopped at the user's request.** The latest request is documentation consolidation and preparation of agent instructions and a continuation prompt. Resume implementation only on an explicit user request.
 
-Recent CI did not execute build steps. The six latest failed runs all contained
-GitHub's account-payment/spending-limit annotation. This requires action in the
-repository owner's GitHub billing settings, not a source-code fix. Older logs
-were unavailable. At the user's request, 85 failed/cancelled runs were removed;
-119 other runs were retained. Recent diagnostics and deleted run IDs are saved
-locally in `.build/ci-diagnostics.json` and `.build/deleted-runs.json`.
+Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`, branch `development/phase_one`. GitHub's default branch is also `development/phase_one`. The separate `Documents\ChatGPT\CarDSP` checkout is older and dirty; leave it untouched.
 
-## Implemented in this workspace
+Published baseline: `c3bcdbc5fe7901d7208952b7d09a0a00d2cf90e5` (documentation/CI cleanup). The subsequent Phase 1 source changes and this documentation consolidation are included in the work-in-progress snapshot requested for publication on 2026-10-26. This snapshot does not establish Phase 1 completion. No full Phase 1 completion by Ollama is established: the inspected OpenCode log only showed a VERSION read, and commit authors do not identify a model.
 
-- Portable C++ stereo processor: independent channel state, planar/interleaved
-  buffers, reset and format validation, guarded coefficient factories.
-- Windows-compatible binary PCM stream executable and regression tests.
-- Release smoke tests retain their checks.
-- Swift core can build/test independently on non-Apple hosts.
-- Swift stream preparation binds the source sample rate across preset changes.
-- Apple local-file playback decodes mono/stereo Float32 in bounded 4096-frame
-  chunks, duplicates mono to stereo, processes through the Swift DSP, and queues
-  at most three buffers. The displayed level describes queued processed PCM.
-- Experimental macOS virtual-device routing uses Core Audio device selection
-  and native AVAudioUnitEQ. It applies EQ, HPF/subsonic and preamp only; it does
-  not implement the Swift engine's dynamics, delay, polarity or subwoofer bus.
-- macOS CI now packages an ad-hoc-signed `.app` with permission descriptions.
+## Status at the stop point
 
-## macOS routing setup and limitations
+| Area | Published baseline | Local unfinished implementation | Acceptance still needed |
+| --- | --- | --- | --- |
+| PCM playback | Play/Stop, volume, bypass, six filters | Transport abstraction and controller restructuring | Continuous playback, EOF, failures and stop/restart regression tests |
+| Pause/resume | Missing | Added methods and QML button | State, position, repeated operations, errors and EOF |
+| Seek / time | Missing | Seek slider, position and duration, output recreation | Boundary seeks, paused seeks, buffered position accuracy, stale events |
+| WAV/MP3/FLAC | Raw PCM only | QAudioDecoder to temporary 48 kHz stereo Float32 PCM | Real fixtures in all three formats, conversion, failure and cancellation cases |
+| Live EQ | Applied on next Play | Detached processor mailbox and 256-frame crossfade | Concurrent edits, rapid changes, bypass, finite output and channel isolation |
+| Output changes | Enumeration, basic output errors | Stop on selected-device disappearance | Disconnect/reconnect, list reorder and explicit device selection |
+| Underruns | Stop with error | Up to three recovery attempts from consumed position | Recovery without duplicated/skipped audio; persistent failure handling |
+| Qt deployment | Local configured build | CMake Qt/QML deployment script | Install to clean folder and launch without development Qt paths |
+| Hardware | Incomplete qualification | Not tested | MSI WS75 speakers, headphones/Bluetooth, audible EQ/bypass, latency |
 
-Install/configure a trusted virtual stereo audio device separately. Set the
-system output to that virtual device, select it as CarDSP's virtual input, and
-select a separate physical output in CarDSP. Allow audio input permission. Start
-EQ Routing. CarDSP does not install a driver or change system defaults. Restart
-routing after tuning changes. Restore the system output manually when finished.
+These local features are implementation attempts, not verified completion claims. Review the code before building on it.
 
-Routing remains experimental until tested on a Mac. Hardware sample rates,
-separate-device clocks, unplug/reconnect behavior, permission prompts and latency
-need real-device validation. Aggregate output devices are excluded to reduce
-feedback-path risk. Protected sources may not supply capturable audio; there is
-no DRM bypass or promise that every Apple Music source can be routed.
+### Files already changed before coding stopped
 
-Apple references: [audio engine graphs](https://developer.apple.com/documentation/avfaudio/avaudioengine),
-[Core Audio device selection](https://developer.apple.com/documentation/audiotoolbox/kaudiooutputunitproperty_currentdevice),
-[native EQ bandwidth](https://developer.apple.com/documentation/avfaudio/avaudiouniteqfilterparameters/bandwidth).
+Modified: `UI/Desktop/Audio/AudioPlaybackEngine.cpp`, `.hpp`, `PcmStreamDevice.hpp`, `PlaybackEq.hpp`; `UI/Desktop/CMakeLists.txt`, `Main.qml`, and `main.cpp`.
 
-## Remaining constraints
+New: `UI/Desktop/Audio/AudioFileDecoder.cpp`, `.hpp`, `PlaybackOutput.cpp`, and `.hpp`.
 
-- iOS MusicKit playback stays separate; only app-readable, unprotected local
-  files enter DSP. No system-wide iOS interception is implemented.
-- File decoding/DSP currently run in bounded work on the main actor. Move this
-  to a dedicated producer queue before claiming low-latency or glitch-free use;
-  UI stalls can underrun the three-buffer queue. EQ edits reset filter state and
-  may click. The engine still uses a lock and should not run in a hard real-time
-  render callback. At 48 kHz, queued tuning latency can reach about 256 ms.
-- Swift and C++ are still separate implementations; full feature parity and a
-  Swift/C++ bridge remain work. The C++ tool is not a WASAPI system-audio host.
-- Existing Swift subwoofer processing shares state with the main bus and needs
-  separation before both buses are used concurrently. Local playback uses only
-  the main stereo path.
-- Xcode builds, device audio tests, macOS signing/notarization and iOS signing
-  are not available on this Windows host. Ad-hoc signing is not notarization.
-- Local changes have not been pushed and hosted CI has not been rerun.
+The decoder requests 48 kHz stereo Float32, stores decoded data in an auto-removed temporary file, has a 4 GiB output limit and a 30-second no-buffer timeout, and decodes the full file before playback. Verify lifecycle, disk failure, unsupported formats, cancellation, and signal reentrancy. Do not promise immediate streamed startup.
 
-## Validation completed
+The output abstraction was added so controller failures can be tested without speakers. **Those new controller/decoder tests were not written before coding stopped.** Existing CTest registration still contains only playback_silent and editable_values for the desktop project.
 
-- Windows MSVC Release build succeeded; all four CTest cases passed, including
-  stereo state/isolation and binary stream input/error handling.
-- Windows Swift 6.4.1 build succeeded; all eight XCTest cases passed, including
-  planar/interleaved equivalence across split buffers and source-rate retention.
-  The installed Swift SDK emitted module-version warnings on the first build.
-- Swift parser checks passed for macOS and iOS branches of the edited app
-  sources. These are syntax checks only, not Apple SDK type-checks or builds.
-- `git diff --check` passed.
-- GitHub queries confirmed zero failed and zero cancelled runs after cleanup.
+Live EQ uses per-stream processor state, a try-lock mailbox, and a 256-frame transition. This is not proof of hard real-time safety or glitch-free audio. File I/O and QIODevice buffering still need review. The selected EQ channel remains applied to both stereo channels; the UI layout selector is not a multichannel router.
+
+## Evidence, with scope
+
+### Published baseline (before the new implementation)
+
+- Windows root Release build passed; SharedDSP CTest: 7/7 passed.
+- Qt desktop build passed; desktop CTest: 2/2 passed (silent PCM and editable-value QML tests).
+- Hosted Shared DSP CI succeeded on Windows, Ubuntu, and macOS for c3bcdbc: [run 40440636511](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40440636511).
+- This workflow does not validate the Qt desktop application, decoding, or physical audio outputs.
+- Local Git index refresh worked with approved access; no stale lock existed. Default remote points to the intended repository. Local shared-dsp-ci has a separate roadmap commit that must be preserved.
+
+### Local Phase 1 changes at stop
+
+- The desktop build already running when the user stopped coding finished with exit code 0 and linked CarDSPDesktop.exe and cardsp_playback_tests.exe.
+- **No tests were run against these new changes.** No current hardware, UI runtime, decoder fixture, deployment, or CI verification was performed.
+- Previous 9/9 passing tests and green hosted CI apply to the baseline, not this modified working tree.
+
+### Earlier PCM/EQ checkpoint
+
+Historical silent full-song processing tested 10,897,920 stereo frames (227.04 seconds at assumed 48 kHz) in bypass, flat, and all six filter modes. Outputs were finite; flat/bypass matched input exactly. The source already exceeded full scale: bypass peak 1.07730, with 380 samples above full scale. Tested filtering also produced overshoots (largest recorded peak 1.48037 in high-pass mode). These figures precede the current implementation, are not an audible test, and establish no limiter or speaker protection.
+
+The earlier checkpoint also recorded offscreen startup with no QML component-load failure, using explicit Qt plugin paths; font/device warnings occurred. That did not prove clean deployment. An earlier checklist marked direct Bluetooth PCM playback as done, but continuous DSP playback and audible qualification remained open.
+
+## Phase 1 acceptance checklist
+
+Check an item only after implementation and verification of the current code, not from a successful build or historical result.
+
+- [x] Baseline Qt desktop application, 32-band EQ, six filters, response graph, preset controls, PCM selection and output enumeration existed.
+- [ ] Review and test the local playback-controller changes against the baseline.
+- [ ] Verify Play, Pause, Resume, Stop, repeated commands, failed start and stop during loading.
+- [ ] Verify position/duration and seek at start, middle, end, negative/out-of-range positions, and while paused; reject stale sink callbacks.
+- [ ] Verify stream EOF, odd-size reads, empty/truncated/non-finite input, and read/output errors.
+- [ ] Test WAV, MP3 and FLAC fixtures, including mono/stereo and differing sample rates; document which additional formats were evaluated and which are supported.
+- [ ] Verify decoder cancellation, unsupported/malformed files, temporary-file cleanup, disk/size limits and timeout behavior.
+- [ ] Verify live EQ, rapid parameter changes, transition behavior, bypass and independent channel histories without non-finite output.
+- [ ] Verify device removal during loading, playback and pause; reconnect, device-list reorder, unsupported output format and explicit output selection.
+- [ ] Verify bounded underrun recovery and persistent-failure behavior without replaying or dropping unexpected samples.
+- [ ] Run existing SharedDSP and desktop tests plus new controller/decoder regressions; check QML interactions and all 32 bands.
+- [ ] Verify QtQuick.Dialogs and multimedia codec deployment from a clean install directory.
+- [ ] Complete authorized continuous playback tests on MSI WS75 speakers and headphones/Bluetooth; confirm audible EQ, bypass, EOF, latency and unplug/reconnect.
+- [ ] Update documentation with actual evidence, review the final diff, and mark Phase 1 complete only when every required gate passes.
+
+## Commands for a future authorized coding session
+
+These are reference instructions, not work executed during this documentation-only handoff. Run in PowerShell 7; preserve the existing desktop cache and compiler pairing.
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$repoPath = 'C:\Users\thetechysasquatch\Documents\GitHub\CarDSP'
+try {
+    Set-Location -LiteralPath $repoPath
+    git status --short --branch
+    if ($LASTEXITCODE -ne 0) { throw 'Git status failed.' }
+    $env:Path = "C:\Qt\Tools\mingw1310_64\bin;C:\Qt\6.12.0\mingw_64\bin;$env:Path"
+    cmake --build build/qt-desktop --parallel 4
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop build failed.' }
+    ctest --test-dir build/qt-desktop --output-on-failure --no-tests=error
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop tests failed.' }
+    cmake --build build/codex-validation --config Release --parallel 4
+    if ($LASTEXITCODE -ne 0) { throw 'Shared DSP/WindowsAudio build failed.' }
+    ctest --test-dir build/codex-validation -C Release --output-on-failure --no-tests=error
+    if ($LASTEXITCODE -ne 0) { throw 'Shared DSP tests failed.' }
+    git diff --check
+    if ($LASTEXITCODE -ne 0) { throw 'Diff whitespace validation failed.' }
+} catch {
+    Write-Error $_
+    exit 1
+}
+```
+
+## Earlier cross-platform work and remaining limits
+
+The October 25 notes described the portable stereo processor, binary PCM tool, retained Release assertions, Swift core portability, source-rate handling, Apple local-file DSP, and experimental macOS virtual-device routing. Historical validation recorded four C++ tests and eight Windows Swift tests; Apple parser checks were syntax-only. These counts are historical, not current regression results.
+
+Apple local-file decoding processes bounded 4096-frame chunks and queues up to three buffers, but main-actor scheduling and a lock still prevent a hard real-time claim. EQ state resets may click; queued latency can be about 256 ms at 48 kHz. Swift and C++ remain separate implementations. Swift subwoofer/main-bus state separation and platform parity remain future work.
+
+Experimental macOS routing requires a separately installed virtual stereo device, physical output selection, and microphone permission. It uses native EQ/HPF/subsonic/preamp, not the complete Swift dynamics/delay/polarity/subwoofer chain. Restore the system output manually afterward; device clocks, feedback, reconnects and latency need Mac validation. No driver installation or DRM bypass is provided. iOS MusicKit is separate from DSP; only accessible local audio samples can be processed. Apple signing, notarization and device builds were not verified on this Windows host.
+
+Older notes reported CI failures due to account spending limits and removal of failed/cancelled runs; they do not establish a current CI failure. This branch currently has Shared DSP CI, not historical IPA or documentation-sync workflows. VERSION is 0.1.0-alpha.7; publication of an alpha.7 release is not established here.
+
+## Document ownership
+
+This document replaces overlapping DEVELOPMENT_STATUS, PROGRESS and PHASE_ONE_CHECKPOINT content. The original Markdown files were copied and hash-verified in `CarDSP_Backups/docs-consolidation-*` before consolidation; published originals remain in Git history. Keep later-phase work in [the roadmap](docs/PROJECT_CHECKLIST.md), agent rules in [AGENTS.md](AGENTS.md), and resumption instructions in [the continuation prompt](docs/PHASE_ONE_CONTINUATION_PROMPT.md).

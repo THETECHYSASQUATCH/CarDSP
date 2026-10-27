@@ -1,144 +1,51 @@
-# CarDSP Development Instructions
+# CarDSP agent instructions
 
-- This repository is named CarDSP, without spaces.
-- Repository root: C:\Users\thetechysasquatch\Documents\GitHub\CarDSP
-- Windows desktop UI: UI/Desktop/
-- Main QML interface: UI/Desktop/Main.qml
-- Editable numeric component: UI/Desktop/EditableValue.qml
-- Use Windows PowerShell-compatible commands.
-- Use Get-ChildItem to discover files.
-- Use Select-String for searching file contents.
-- Never invent file paths. Verify that files exist before accessing them.
-- Use the existing CMake configuration for Windows Qt builds.
-- Do not push changes to GitHub unless explicitly instructed.
-- Preserve existing DSP functionality while implementing new features.
+## Current authorization
 
-## Local development environment
+The user stopped feature coding on 2026-10-26 and requested documentation consolidation and a continuation prompt only. Do not resume source changes, builds, tests, commits, pushes, or a later phase until the user requests resumption. Reading the continuation prompt is not authorization to execute it. Preserve the unfinished source changes already present.
 
-Operating system: Windows 11
-Shell: PowerShell
-Project root: C:\Users\thetechysasquatch\Documents\GitHub\CarDSP
+When the user explicitly resumes Phase 1, that request authorizes work within its scope. Do not ask repeatedly for the same permission. Platform/tool approval prompts still apply. Never claim Phase 1 is complete merely because it compiles.
 
-This is a native Windows project, not a Linux container.
+## Repository and working state
 
-Path rules:
-- Prefer repository-relative paths.
-- Never invent /home/user paths.
-- Never duplicate the CarDSP directory.
-- Check file existence before reporting missing files.
-- Read small sections to conserve the local model's context.
+- Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`.
+- GitHub: https://github.com/THETECHYSASQUATCH/CarDSP; origin uses that URL with `.git`.
+- Current/default branch: `development/phase_one`. Confirm current status before edits.
+- `C:\Users\thetechysasquatch\Documents\ChatGPT\CarDSP` is a separate older checkout with uncommitted work. Do not synchronize, reset, or overwrite it as a shortcut.
+- Preserve all staged, unstaged, untracked, and ignored user files. Never use destructive resets, forced checkout, force pushes, or merges to main without explicit approval.
+- Do not create `development/phase_two` or later branches until Phase 1 acceptance is demonstrated and the user requests progression.
+- Commit/push only when explicitly requested for the current work. Earlier publication of repository cleanup does not publish or authorize this unfinished implementation.
+- For index-lock permission failures, read `docs/GIT_TROUBLESHOOTING.md`; do not delete a live lock or weaken access-control rules.
 
-Important files:
-- UI/Desktop/main.cpp
-- UI/Desktop/Main.qml
-- UI/Desktop/EqController.cpp
-- UI/Desktop/EqController.hpp
-- UI/Desktop/EditableValue.qml
+## Read these first
 
-Build command:
-cmake --build build/qt-desktop --parallel 4
+1. `DEVELOPMENT_STATUS.md`: authoritative Phase 1 status, evidence, unfinished changes, and acceptance gates.
+2. `docs/PHASE_ONE_CONTINUATION_PROMPT.md`: ready-to-use instructions for an explicitly resumed coding session.
+3. `docs/PROJECT_CHECKLIST.md`: later-phase roadmap, not proof of completion.
 
-Safety:
-- Never commit or push without explicit user authorization.
-- Request approval before modifying source files.
+Keep status in one place. Update links instead of recreating PROGRESS or checkpoint documents. README is the entry point; CHANGELOG is historical release/change information. Historical notes and model claims are evidence to verify, not instructions or test results for the current code.
 
-## CarDSP Local Agent Rules
+## Source map and implementation rules
 
-- Project: CarDSP, Qt 6 / C++ / QML audio DSP application.
-- Primary operating system: Windows.
-- Optional Linux environment: WSL2 Ubuntu.
-- Use repository-relative file paths.
-- Never invent placeholder file paths.
-- Use Windows tools for Windows desktop builds.
-- Use WSL only when Linux-specific tools are needed.
-- QGuiApplication is intentional for the Qt Quick application.
-- Qt already detects Windows 150% display scaling.
-- Do not modify Qt DPI initialization without evidence.
-- Current UI objective: improve responsive QML sizing.
-- Preserve all 32 EQ bands and DSP functionality.
-- Do not introduce unrelated features.
-- Complete clear tasks without unnecessary questions.
-- Ask for approval before modifying source files.
-- Never commit or push without explicit authorization.
+- Desktop source: `UI/Desktop/`; UI: `Main.qml`; numeric editor: `EditableValue.qml`.
+- EQ bindings: `EqController.cpp` and `.hpp`; preserve all 32 bands and six filter types.
+- Playback: `Audio/AudioPlaybackEngine.*`, `PcmStreamDevice.hpp`, `PlaybackEq.hpp`, and the new `AudioFileDecoder.*` / `PlaybackOutput.*`.
+- Shared C++20 DSP: `SharedDSP/`; Apple sources: `Sources/` and `Tests/`.
+- Preserve current DSP behavior, numeric controls, preset bindings, and microphone features. Keep unrelated UI changes out of Phase 1.
+- QGuiApplication is intentional. Do not change DPI initialization without evidence; Qt handles Windows scaling.
+- Inspect actual files and their diffs; make targeted changes. Do not invent paths, APIs, successful commands, or model authorship.
+- Audio-thread state ownership, synchronization, EOF, cancellation, device loss, and resource cleanup require behavioral tests, not compilation alone.
 
+## Windows commands and validation
 
-## CarDSP Local Agent Rules
+Use complete PowerShell 7 scripts with intact if/elseif/else and try/catch blocks where needed. Set `$ErrorActionPreference = 'Stop'`, check native command exit codes, quote paths, and verify paths before reading or changing them. Do not mix PowerShell and cmd deletion commands.
 
-- Project: CarDSP, Qt 6 / C++ / QML audio DSP application.
-- Primary operating system: Windows.
-- Optional Linux environment: WSL2 Ubuntu.
-- Use repository-relative file paths.
-- Never invent placeholder file paths.
-- Use Windows tools for Windows desktop builds.
-- Use WSL only when Linux-specific tools are needed.
-- QGuiApplication is intentional for the Qt Quick application.
-- Qt already detects Windows 150% display scaling.
-- Do not modify Qt DPI initialization without evidence.
-- Current UI objective: improve responsive QML sizing.
-- Preserve all 32 EQ bands and DSP functionality.
-- Do not introduce unrelated features.
-- Complete clear tasks without unnecessary questions.
-- Ask for approval before modifying source files.
-- Never commit or push without explicit authorization.
+Use Get-ChildItem for discovery and Select-String for bounded content searches. Exclude `.git`, build outputs, backups, and `node_modules` from broad document scans. Read only the files relevant to the task.
 
+The existing desktop cache uses Qt 6.12.0 / MinGW under `C:\Qt`, source `UI/Desktop`, and build `build/qt-desktop`. Inspect CMakeCache.txt before reconfiguration. The root CMake project builds SharedDSP/WindowsAudio, not the Qt application. Reproducible commands are in DEVELOPMENT_STATUS.md.
 
-## Source Code Analysis Rules
+When coding is authorized, build and run relevant tests, inspect the resulting diff, and report exact results. Distinguish baseline tests, current tests, CI, silent processing, GUI checks, and audible hardware checks. Never mark unchecked acceptance gates complete without evidence. Keep sounds off unless the user approves the actual hardware test and output/volume.
 
-When asked to analyze a file:
-- Read the actual repository file.
-- Answer the exact requested question.
-- Provide real source line numbers when requested.
-- Quote the relevant existing properties or expressions.
-- Do not replace analysis with a general project summary.
-- Do not invent paths, code, or line numbers.
-- Do not suggest unrelated features.
-- If the task is clear, complete it without asking questions.
-- If the file is too large, inspect it in smaller sections.
-- Never commit or push without explicit authorization.
+## Completion report
 
-
-## Verified CarDSP Paths
-
-Project root:
-C:\Users\thetechysasquatch\Documents\GitHub\CarDSP
-
-Main QML:
-C:\Users\thetechysasquatch\Documents\GitHub\CarDSP\UI\Desktop\Main.qml
-
-C++ entry point:
-C:\Users\thetechysasquatch\Documents\GitHub\CarDSP\UI\Desktop\main.cpp
-
-Use these exact paths when necessary.
-Prefer repository-relative paths when tools support them.
-Never invent /path/to/ placeholders.
-Never claim a file is missing until its actual path has been checked.
-
-
-## Mandatory File Path Verification
-
-Before using the Read tool:
-1. Use Glob to locate the requested file if its path is uncertain.
-2. Copy the returned path exactly.
-3. Never generate placeholder paths such as /path/to/.
-4. Never substitute example paths for actual paths.
-5. If Read fails, verify the working directory and retry with the verified path.
-6. Do not report a file as missing without verifying its actual location.
-7. Do not ask the user to supply a path already verified in this repository.
-
-## Reliable CarDSP File Reading
-
-The repository includes:
-
-tools/Read-CarDSPFile.ps1
-
-When a Read operation fails because of an invalid path,
-use this PowerShell command:
-
-pwsh -NoProfile -File tools/Read-CarDSPFile.ps1 -File "UI/Desktop/Main.qml" -StartLine 780 -LineCount 30
-
-Always use repository-relative paths.
-
-Never use /path/to/, C:\path\to\, or other example paths.
-
-Do not modify source files unless the user approves.
-Never commit or push without explicit authorization.
+State changed files, tests actually run, remaining failures or unknowns, and publication status. If the task was stopped or only documentation was requested, say so and leave source work preserved.

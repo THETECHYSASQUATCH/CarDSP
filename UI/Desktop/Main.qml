@@ -9,9 +9,9 @@ ApplicationWindow {
     // Phase 4D - Native audio file picker
     FileDialog {
         id: pcmFileDialog
-        title: "Select PCM Audio File"
+        title: "Select Audio File"
         fileMode: FileDialog.OpenFile
-        nameFilters: ["Raw PCM Audio (*.pcm *.raw)", "All Files (*)"]
+        nameFilters: ["Audio (*.wav *.mp3 *.flac *.pcm *.raw)", "WAV (*.wav)", "MP3 (*.mp3)", "FLAC (*.flac)", "Raw PCM (*.pcm *.raw)"]
         onAccepted: {
             window.selectedPcmFile = audioPlaybackEngine.localFilePath(selectedFile)
         }
@@ -48,12 +48,16 @@ ApplicationWindow {
 
         return success
     }
-    // Phase 4D - Audio playback controls
+    function formatTime(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000)
+        return Math.floor(seconds / 60) + ":" + (seconds % 60).toString().padStart(2, "0")
+    }
+    // Audio playback controls
     property string selectedPcmFile: ""
 
     header: Rectangle {
         id: playbackToolbar
-        height: 112
+        height: 154
         color: "#172631"
 
         ColumnLayout {
@@ -70,7 +74,7 @@ ApplicationWindow {
                 TextField {
                     id: pcmPath
                     Layout.fillWidth: true
-                    placeholderText: "Path to 48 kHz stereo Float32 PCM file"
+                    placeholderText: "WAV, MP3, FLAC, or 48 kHz stereo Float32 PCM"
                     text: window.selectedPcmFile
                     onEditingFinished: window.selectedPcmFile = text
                 }
@@ -85,18 +89,19 @@ ApplicationWindow {
                     Layout.preferredWidth: 200
                     model: audioPlaybackEngine ? audioPlaybackEngine.outputDevices : []
                     textRole: "name"
+                    enabled: audioPlaybackEngine && !audioPlaybackEngine.playing && !audioPlaybackEngine.loading
                 }
 
                 Button {
                     text: "Play"
-                    enabled: audioPlaybackEngine && !audioPlaybackEngine.playing
+                    enabled: audioPlaybackEngine && !audioPlaybackEngine.playing && !audioPlaybackEngine.loading
                              && window.selectedPcmFile.length > 0
                     onClicked: {
                         if (window.configurePlaybackEq()) {
                             console.log("CarDSP: Starting playback:",
                                         window.selectedPcmFile)
 
-                            const started = audioPlaybackEngine.playPcm(
+                            const started = audioPlaybackEngine.playFile(
                                 window.selectedPcmFile,
                                 outputSelector.currentIndex
                             )
@@ -112,10 +117,39 @@ ApplicationWindow {
                 }
 
                 Button {
-                    text: "Stop"
+                    text: audioPlaybackEngine && audioPlaybackEngine.paused ? "Resume" : "Pause"
                     enabled: audioPlaybackEngine && audioPlaybackEngine.playing
+                    onClicked: {
+                        if (audioPlaybackEngine.paused) audioPlaybackEngine.resume()
+                        else audioPlaybackEngine.pause()
+                    }
+                }
+                Button {
+                    text: "Stop"
+                    enabled: audioPlaybackEngine && (audioPlaybackEngine.playing || audioPlaybackEngine.loading)
                     onClicked: audioPlaybackEngine.stop()
                 }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Label {
+                    text: audioPlaybackEngine.loading ? "Preparing audio…" : window.formatTime(audioPlaybackEngine.position)
+                    color: "white"
+                }
+                Slider {
+                    id: playbackPosition
+                    Layout.fillWidth: true
+                    from: 0
+                    to: Math.max(1, audioPlaybackEngine.duration)
+                    enabled: audioPlaybackEngine.playing
+                    Binding { target: playbackPosition; property: "value"; value: audioPlaybackEngine.position; when: !playbackPosition.pressed }
+                    onPressedChanged: { if (!pressed && enabled) audioPlaybackEngine.seek(Math.round(value)) }
+                    Keys.onReleased: function(event) {
+                        if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) audioPlaybackEngine.seek(Math.round(value))
+                    }
+                }
+                Label { text: window.formatTime(audioPlaybackEngine.duration); color: "white" }
             }
 
             RowLayout {

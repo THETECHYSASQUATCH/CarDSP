@@ -66,9 +66,7 @@ int main(int argc, char *argv[])
         &EqController::bandsChanged,
         &audioPlaybackEngine,
         [&eqController, &audioPlaybackEngine]() {
-            if (!audioPlaybackEngine.playing()) {
-                audioPlaybackEngine.configureEq(eqController.bands());
-            }
+            audioPlaybackEngine.configureEq(eqController.bands());
         }
     );
 
