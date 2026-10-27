@@ -783,18 +783,15 @@ ApplicationWindow {
                         anchors.margins: 12
                         clip: true
 
-                        contentWidth: availableWidth
-                        contentHeight: eqGrid.implicitHeight
+                        contentWidth: eqGrid.implicitWidth
+                        contentHeight: Math.max(availableHeight, eqGrid.implicitHeight)
 
-                        ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOn
 
-                        GridLayout {
+                        RowLayout {
                             id: eqGrid
-                            width: Math.max(200, eqScrollView.availableWidth)
-                            columns: Math.max(1, Math.floor(eqScrollView.availableWidth / 212))
-                            columnSpacing: 12
-                            rowSpacing: 12
+                            spacing: 12
 
                             Repeater {
                                 model: eqBands
@@ -802,9 +799,10 @@ ApplicationWindow {
                                 delegate: Rectangle {
                                     required property int index
 
-                                    Layout.fillWidth: true
-                                    Layout.preferredWidth: 200
-                                    Layout.minimumWidth: 180
+                                    Layout.fillWidth: false
+                                    Layout.preferredWidth: 190
+                                    Layout.minimumWidth: 190
+                                    Layout.maximumWidth: 190
                                     Layout.preferredHeight: 535
                                     color: "#243542"
                                     radius: 8

@@ -1,3 +1,5 @@
+#include <QDebug>
+#include <QScreen>
 #include "Audio/AudioPlaybackEngine.hpp"
 #include "Audio/MicrophoneManager.hpp"
 #include "Audio/SpectrumAnalyzer.hpp"
@@ -12,6 +14,13 @@ int main(int argc, char *argv[])
 {
     QQuickStyle::setStyle("Fusion");
     QGuiApplication app(argc, argv);
+
+    if (auto *screen = QGuiApplication::primaryScreen()) {
+        qInfo() << "Qt screen:" << screen->name();
+        qInfo() << "Qt logical DPI:" << screen->logicalDotsPerInch();
+        qInfo() << "Qt device pixel ratio:" << screen->devicePixelRatio();
+        qInfo() << "QT_SCALE_FACTOR:" << qEnvironmentVariable("QT_SCALE_FACTOR");
+    }
 
     QQmlApplicationEngine engine;
 
