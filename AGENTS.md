@@ -1,26 +1,26 @@
 # CarDSP agent instructions
 
-## Current authorization
+## Current authorization and phase handoff
 
-The user stopped feature coding on 2026-10-26 and requested documentation consolidation and a continuation prompt only. Do not resume source changes, builds, tests, commits, pushes, or a later phase until the user requests resumption. Reading the continuation prompt is not authorization to execute it. Preserve the unfinished source changes already present.
+The user explicitly authorized starting Phase 2 on 2026-10-27 after reporting that all seven Phase 1 alpha CI jobs passed and PR #13 was merged. Phase 2 work is authorized within the UI/dashboard/navigation/numeric-input scope in `docs/PROJECT_CHECKLIST.md`. Do not treat green CI as proof that all Phase 1 hardware, decoder, or UX acceptance gates passed; track those as outstanding.
 
-When the user explicitly resumes Phase 1, that request authorizes work within its scope. Do not ask repeatedly for the same permission. Platform/tool approval prompts still apply. Never claim Phase 1 is complete merely because it compiles.
+Do not merge to `main`, publish releases, alter signing, or make destructive local changes without the user's specific authorization. Commit targeted Phase 2 changes to `development/phase_two` and open review PRs as appropriate.
 
 ## Repository and working state
 
 - Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`.
 - GitHub: https://github.com/THETECHYSASQUATCH/CarDSP; origin uses that URL with `.git`.
-- Current/default branch: `development/phase_one`. Confirm current status before edits.
+- Phase 2 working branch: `development/phase_two`, created from the merged `development/phase_one` head. The GitHub default branch may still be `development/phase_one`; verify before changing it.
 - `C:\Users\thetechysasquatch\Documents\ChatGPT\CarDSP` is a separate older checkout with uncommitted work. Do not synchronize, reset, or overwrite it as a shortcut.
 - Preserve all staged, unstaged, untracked, and ignored user files. Never use destructive resets, forced checkout, force pushes, or merges to main without explicit approval.
-- Do not create `development/phase_two` or later branches until Phase 1 acceptance is demonstrated and the user requests progression.
+- Phase 2 was explicitly requested and its branch has been created. Do not create Phase 3 or later branches without authorization.
 - Commit/push only when explicitly requested for the current work. Earlier publication of repository cleanup does not publish or authorize this unfinished implementation.
 - For index-lock permission failures, read `docs/GIT_TROUBLESHOOTING.md`; do not delete a live lock or weaken access-control rules.
 
 ## Read these first
 
-1. `DEVELOPMENT_STATUS.md`: authoritative Phase 1 status, evidence, unfinished changes, and acceptance gates.
-2. `docs/PHASE_ONE_CONTINUATION_PROMPT.md`: ready-to-use instructions for an explicitly resumed coding session.
+1. `DEVELOPMENT_STATUS.md`: Phase 1 CI evidence, outstanding acceptance, and Phase 2 handoff.
+2. `docs/PHASE_TWO_AGENT_NOTES.md`: Phase 2 implementation sequence, testing and handoff.
 3. `docs/PROJECT_CHECKLIST.md`: later-phase roadmap, not proof of completion.
 
 Keep status in one place. Update links instead of recreating PROGRESS or checkpoint documents. README is the entry point; CHANGELOG is historical release/change information. Historical notes and model claims are evidence to verify, not instructions or test results for the current code.
