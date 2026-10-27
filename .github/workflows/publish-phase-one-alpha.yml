@@ -1,0 +1,53 @@
+name: Publish verified Phase 1 alpha
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: 'Successful Phase 1 alpha build workflow run ID'
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source version and build run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN: ${{ inputs.build_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < VERSION)"
+          test "$version" = "0.1.0-phase1.alpha.1"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BUILD_RUN}" > run.json
+          jq -e --arg sha "$GITHUB_SHA" '.conclusion == "success" and .head_sha == $sha and .name == "Phase 1 alpha build (desktop)"' run.json
+      - name: Download verified build artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN: ${{ inputs.build_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          gh run download "$BUILD_RUN" --dir release
+          find release -type f -name '*.tar.gz' -print
+          test "$(find release -type f -name '*.tar.gz' | wc -l)" -eq 3
+      - name: Publish prerelease (no mobile binaries)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="phase1-alpha.1"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release already exists: $tag" >&2
+            exit 1
+          fi
+          mapfile -d '' assets < <(find release -type f -name '*.tar.gz' -print0)
+          gh release create "$tag" "${assets[@]}" --target "$GITHUB_SHA" --prerelease \
+            --title "CarDSP Phase 1 alpha.1 (desktop preview)" \
+            --notes "Unsigned desktop preview builds. Windows, Linux and macOS only. Android and iOS/iPadOS app packages are NOT included. Phase 1 acceptance and hardware validation remain outstanding."
