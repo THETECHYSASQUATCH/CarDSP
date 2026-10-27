@@ -1,12 +1,20 @@
 # CarDSP development status
 
-Updated: 2026-10-26 (America/Chicago).
+Updated: 2026-10-27 (Phase 2 handoff).
+
+## Latest Phase 1 CI and Phase 2 handoff
+
+The user reported **all seven Phase 1 alpha workflow jobs passed** after fixes and **PR #13 merged** into `development/phase_one` (merge commit `c7c0a2cb9c2e4937e77048aeffba92c813f5ddd1`). The original failed run [40573155716](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40573155716) exposed Linux float-equality regression, Windows relative deployment prefix, and macOS missing AGL framework. Follow-up changes addressed the test comparison, absolute install prefix, and newer Qt CI version. The successful follow-up run ID and actual artifact verification have **not** been independently recorded here.
+
+The user authorized `development/phase_two` for dashboard, navigation, UI and numeric input work. **CI success establishes cross-platform compilation and automated test success, not full Phase 1 acceptance.** Decoder fixtures, physical audio output tests, and deployment launch checks remain unverified in this record. See [Phase 2 agent notes](docs/PHASE_TWO_AGENT_NOTES.md).
+
+
 
 ## Current decision and repository
 
-**Phase 1 is IN PROGRESS. Coding is stopped at the user's request.** The latest request is documentation consolidation and preparation of agent instructions and a continuation prompt. Resume implementation only on an explicit user request.
+**Phase 1 CI: user-reported green and merged. Phase 1 full acceptance: outstanding checks remain. Phase 2: authorized and branch created.**
 
-Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`, branch `development/phase_one`. GitHub's default branch is also `development/phase_one`. The separate `Documents\ChatGPT\CarDSP` checkout is older and dirty; leave it untouched.
+Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`, Phase 2 branch `development/phase_two` based on `development/phase_one`. GitHub default branch should be checked before any change. The separate `Documents\ChatGPT\CarDSP` checkout is older and dirty; leave it untouched.
 
 Published baseline: `c3bcdbc5fe7901d7208952b7d09a0a00d2cf90e5` (documentation/CI cleanup). The subsequent Phase 1 source changes and this documentation consolidation are included in the work-in-progress snapshot requested for publication on 2026-10-26. This snapshot does not establish Phase 1 completion. No full Phase 1 completion by Ollama is established: the inspected OpenCode log only showed a VERSION read, and commit authors do not identify a model.
 
