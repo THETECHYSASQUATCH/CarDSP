@@ -2,9 +2,11 @@
 
 [GitHub repository](https://github.com/THETECHYSASQUATCH/CarDSP) · [Development branch](https://github.com/THETECHYSASQUATCH/CarDSP/tree/development/phase_one) · [Actions](https://github.com/THETECHYSASQUATCH/CarDSP/actions) · [Releases](https://github.com/THETECHYSASQUATCH/CarDSP/releases)
 
+> **Phase 1 release preparation:** A new review branch resets the next Phase 1 alpha candidate to `0.1.0-phase1.alpha.1` without overwriting the historical alpha.1–alpha.7 series. Phase 1 remains **unverified/incomplete** until the [acceptance gates](DEVELOPMENT_STATUS.md) pass. See [release issue #12](https://github.com/THETECHYSASQUATCH/CarDSP/issues/12), [desktop build workflow](.github/workflows/phase-one-alpha.yml), and [manual prerelease publishing workflow](.github/workflows/publish-phase-one-alpha.yml). Windows, Linux and macOS desktop artifacts are planned; Android and iOS/iPadOS app builds are not yet implemented. Nothing has been released by this change.
+
 CarDSP is an audio DSP project with a portable C++20 processing library, a Windows Qt Quick desktop application, and Swift sources for Apple platforms.
 
-The version recorded in [VERSION](VERSION) is **0.1.0-alpha.7**. This identifies the source version; it does not establish that a corresponding downloadable release has been published. Earlier alpha release notes remain in [CHANGELOG.md](CHANGELOG.md).
+The version recorded in [VERSION](VERSION) on this release-preparation branch is **0.1.0-phase1.alpha.1**. This identifies the source version; it does not establish that a corresponding downloadable release has been published. Earlier alpha release notes remain in [CHANGELOG.md](CHANGELOG.md).
 
 ## Current development
 
