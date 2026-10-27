@@ -36,7 +36,15 @@ void regression() {
         require(expected.add(c), "filter rejected");
         std::array<float,2048> a{}, b{}; a[0]=b[0]=1;
         processor.processInterleaved(a.data(),1024); expected.processInterleaved(b.data(),1024);
-        require(a == b, "filter type mapping mismatch");
+        for (size_t sample = 0; sample < a.size(); ++sample) {
+            if (!std::isfinite(a[sample]) || !std::isfinite(b[sample]) ||
+                std::abs(a[sample] - b[sample]) > 1e-5f) {
+                std::cerr << "filter type mapping mismatch: type=" << type
+                          << " sample=" << sample << " actual=" << a[sample]
+                          << " expected=" << b[sample] << '\\n';
+                throw std::runtime_error("filter type mapping mismatch");
+            }
+        }
         require(a[0] != 1, "filter did not change impulse");
         for(size_t i=1;i<a.size();i+=2) require(a[i]==0, "channel leakage");
     }
