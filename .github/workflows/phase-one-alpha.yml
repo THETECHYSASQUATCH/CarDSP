@@ -1,0 +1,73 @@
+name: Phase 1 alpha build (desktop)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release/phase-one-alpha-reset
+permissions:
+  contents: read
+jobs:
+  desktop:
+    name: Desktop ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            qt_arch: win64_msvc2022_64
+            extension: zip
+          - os: ubuntu-latest
+            qt_arch: linux_gcc_64
+            extension: tar.gz
+          - os: macos-latest
+            qt_arch: clang_64
+            extension: tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux Qt prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libpulse-dev libasound2-dev libegl1 libopengl0
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: ${{ matrix.qt_arch }}
+          modules: 'qtmultimedia'
+          cache: true
+      - name: Configure desktop
+        run: cmake -S UI/Desktop -B build/desktop -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build desktop
+        run: cmake --build build/desktop --config Release --parallel 2
+      - name: Test desktop
+        run: ctest --test-dir build/desktop -C Release --output-on-failure --no-tests=error
+      - name: Stage desktop
+        run: cmake --install build/desktop --config Release --prefix stage
+      - name: Archive desktop
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          tar -czf "artifacts/CarDSP-${{ runner.os }}-phase1-alpha1.tar.gz" -C stage .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CarDSP-${{ runner.os }}-phase1-alpha1
+          path: artifacts/*
+          if-no-files-found: error
+  core:
+    name: Core DSP ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build/core -DCMAKE_BUILD_TYPE=Release -DCARDSP_BUILD_TESTS=ON
+      - run: cmake --build build/core --config Release --parallel 2
+      - run: ctest --test-dir build/core -C Release --output-on-failure --no-tests=error
+  swift:
+    name: Swift core tests (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
