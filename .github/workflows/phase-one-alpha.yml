@@ -31,10 +31,10 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.3'
+          version: '6.10.2'
           arch: ${{ matrix.qt_arch }}
           modules: 'qtmultimedia'
-          cache: true
+          cache: false
       - name: Configure desktop
         run: cmake -S UI/Desktop -B build/desktop -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
       - name: Build desktop
@@ -42,7 +42,10 @@ jobs:
       - name: Test desktop
         run: ctest --test-dir build/desktop -C Release --output-on-failure --no-tests=error
       - name: Stage desktop
-        run: cmake --install build/desktop --config Release --prefix stage
+        shell: bash
+        run: |
+          stage_dir="${GITHUB_WORKSPACE}/stage"
+          cmake --install build/desktop --config Release --prefix "$stage_dir"
       - name: Archive desktop
         shell: bash
         run: |
