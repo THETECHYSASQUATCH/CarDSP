@@ -1,185 +1,70 @@
 # CarDSP
 
-Latest Windows work: [PCM/EQ foundation checkpoint](PHASE_ONE_CHECKPOINT.md),
-including silent song tests and editable slider values (2026-10-26).
+[GitHub repository](https://github.com/THETECHYSASQUATCH/CarDSP) · [Development branch](https://github.com/THETECHYSASQUATCH/CarDSP/tree/development/phase_one) · [Actions](https://github.com/THETECHYSASQUATCH/CarDSP/actions) · [Releases](https://github.com/THETECHYSASQUATCH/CarDSP/releases)
 
-Real-time DSP foundation and iPhone car-audio EQ application.
+CarDSP is an audio DSP project with a portable C++20 processing library, a Windows Qt Quick desktop application, and Swift sources for Apple platforms.
 
-For the current local development changes, platform support and known limits,
-see [Development status](DEVELOPMENT_STATUS.md). This includes local-file DSP
-playback, experimental macOS virtual-device EQ routing, and the portable Windows
-PCM processing tool; these changes are not yet a published alpha release.
+The version recorded in [VERSION](VERSION) is **0.1.0-alpha.7**. This identifies the source version; it does not establish that a corresponding downloadable release has been published. Earlier alpha release notes remain in [CHANGELOG.md](CHANGELOG.md).
 
-## Current release
+## Current development
 
-**CarDSP v0.1.0-alpha.6** — current install/test alpha.
+Work continues on `development/phase_one`. See the [PCM/EQ checkpoint](PHASE_ONE_CHECKPOINT.md), [development status](DEVELOPMENT_STATUS.md), and [project checklist](docs/PROJECT_CHECKLIST.md).
 
-This is an early testing release. GitHub Actions builds the ARM64 iPhone application, assembles a versioned IPA, embeds the CarDSP app icon, and publishes an alpha prerelease. The workflow always produces an unsigned IPA and can additionally produce a signed/device-provisioned IPA when valid Apple signing secrets are configured.
+- Windows desktop: 32-band EQ interface, raw 48 kHz stereo Float32 PCM playback, output selection, volume, and EQ bypass.
+- Shared DSP: biquad filters, stereo processing, crossovers, alignment, polarity, routing, and a command-line PCM adapter.
+- Swift: reusable DSP core and Apple application sources. The historical Swift EQ has 31 bands; the Windows desktop interface has 32.
+- EQ edits apply on the next Play; volume and bypass can change during playback.
+- Audible EQ, device reconnection, latency, and playback completion still need hardware qualification. WAV/MP3/FLAC decoding and system-wide routing remain future work.
 
-### Alpha.6 highlights
+## Build and test on Windows
 
-- Automatic audio-route monitoring and live route/status refresh.
-- Live sample-rate, channel-count, peak dBFS, and clipping-status display.
-- Signal Path dashboard and digital-headroom protection.
-- Safe Preamp compensation for positive EQ boosts.
-- Local per-output DSP profiles with automatic recall.
-- RTA/Auto-EQ target curves: Flat, Car SQ, Bass Lift, Warm, and Reference.
-- Adjustable Auto-EQ correction strength.
-- Wired Lightning-to-AUX, USB-C-to-AUX, USB audio, line-out, Bluetooth, and AirPlay route support.
-- Privacy-first design with local settings storage and no intentional analytics or tracking.
-- Full release history is maintained in [`CHANGELOG.md`](CHANGELOG.md).
-
-### Alpha testing goals
-
-- Verify installation and launch on a physical iPhone.
-- Verify route identification and automatic updates while switching Bluetooth/wired outputs.
-- Verify Lightning-to-AUX and USB-C-to-AUX adapters report valid routes.
-- Verify compatible USB audio interfaces and sample rates.
-- Verify live peak/clipping meter behavior for CarDSP-owned audio.
-- Verify per-output profile save, recall, auto-recall, and delete behavior.
-- Verify RTA target curves and Auto-EQ correction strength.
-- Verify EQ, filters, limiter, compressor, time alignment, polarity, presets, and Safe Preamp.
-- Test Apple Music/MusicKit authorization and device-only behavior.
-
-> **Alpha warning:** CarDSP is under active development. Do not rely on this build for hearing protection, speaker protection, or guaranteed output-level limiting.
-
-## Privacy philosophy
-
-CarDSP is intended to help audiophiles and music lovers tune and understand their playback system, not to profile its users.
-
-- No advertising SDKs are intentionally included.
-- No analytics or telemetry system is intentionally included.
-- No App Tracking Transparency prompt is requested because CarDSP is not designed to track users across apps or websites.
-- Apple Music access is used for music authorization/playback features.
-- Microphone access is used for user-requested RTA and acoustic measurement features.
-- Bluetooth access is used for audio routing/device compatibility, not location or behavioral tracking.
-- DSP presets, configuration, and output-route profiles are stored locally on the device.
-
-Any future network, cloud, analytics, crash-reporting, account, or synchronization feature should be reviewed against this privacy goal before being added.
-
-## Implemented
-
-- 31-band parametric/graphic-style EQ using cascaded biquads
-- Stereo Float32 in-place processing
-- High-pass, subsonic, and low-pass filtering
-- Independent subwoofer processing bus
-- Master gain, soft limiter, and compressor
-- Time alignment and phase/polarity support
-- DSP configuration and preset persistence
-- Local per-output DSP profile storage and automatic recall
-- Signal Path and digital-headroom dashboard
-- Safe Preamp compensation
-- Live app-owned audio peak/clipping meter
-- Pink noise and sine/sweep generation helpers
-- Microphone-driven RTA/analyzer
-- RTA target curves and conservative Auto-EQ assistance
-- AVAudioSession Bluetooth and wired route support
-- Automatic route-change monitoring
-- Lightning/USB-C AUX and USB audio route identification
-- MusicKit `ApplicationMusicPlayer` authorization/playback coordinator
-- Physical iPhone ARM64 CI build
-- Versioned unsigned IPA packaging
-- CarDSP iOS app icon packaging
-- Optional certificate/provisioning based signing in GitHub Actions
-- Automated alpha prerelease publishing
-- Automated README/changelog version synchronization
-
-## Important architecture note
-
-MusicKit playback and an AVAudioEngine render graph are separate concerns on iOS. The MusicKit application player is included for Apple Music catalog/account playback, while the DSP engine is exposed as a real-time processing component. CarDSP should only claim Apple Music DSP processing where the chosen iOS audio architecture actually provides access to the audio samples.
-
-Supporting an output route such as Bluetooth, Lightning-to-AUX, USB-C-to-AUX, or USB audio means CarDSP can configure and report the route used by app-owned audio. It does not bypass iOS restrictions on intercepting audio generated by other applications.
-
-## Current app tabs
-
-- Player
-- EQ
-- Analyzer
-
-## Standard EQ presets
-
-- Flat
-- Bass Boost
-- Treble Boost
-- Vocal
-- Rock
-
-## RTA / Auto-EQ targets
-
-- Flat
-- Car SQ
-- Bass Lift
-- Warm
-- Reference
-
-## CI / build status
-
-The repository uses separate GitHub Actions workflows for:
-
-- **DSP Core Tests** — builds and tests the reusable DSP core on macOS.
-- **iOS Simulator Build** — verifies the iOS application compiles for the simulator.
-- **iOS IPA** — builds the physical-device ARM64 executable, assembles `CarDSP.app`, embeds the app icon, packages the versioned unsigned IPA, optionally signs when Apple signing assets are configured, uploads artifacts, and publishes the alpha release.
-- **Documentation Sync** — runs when `VERSION` changes and synchronizes the current version in README/CHANGELOG release metadata.
-
-The IPA workflow lives at [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml). Documentation synchronization lives at [`.github/workflows/docs-sync.yml`](.github/workflows/docs-sync.yml). The icon source is [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64), and release versioning is stored in [`VERSION`](VERSION).
-
-## IPA outputs
-
-For the current version the pipeline produces:
-
-- `CarDSP-0.1.0-alpha.6-unsigned.ipa`
-- `CarDSP-0.1.0-alpha.6-signed.ipa` when all required Apple signing secrets are available.
-
-An unsigned IPA must be signed/re-signed with a valid Apple development identity and matching provisioning profile before normal installation on a stock iPhone. Signing credentials belong in GitHub Actions secrets, never in source control.
-
-## Bundle and signing references
-
-- Bundle identifier: `com.thetechysasquatch.CarDSP`
-- App metadata: [`Sources/CarDSPApp/Info.plist`](Sources/CarDSPApp/Info.plist)
-- App icon source: [`Assets/AppIcon180.png.b64`](Assets/AppIcon180.png.b64)
-- IPA/signing workflow: [`.github/workflows/ipa.yml`](.github/workflows/ipa.yml)
-- Docs workflow: [`.github/workflows/docs-sync.yml`](.github/workflows/docs-sync.yml)
-- Version: [`VERSION`](VERSION)
-- Full release/development history: [`CHANGELOG.md`](CHANGELOG.md)
-
-## Windows testing
-
-The Swift/iOS source requires Apple/Xcode tooling to compile and Apple tooling to perform native iOS code signing. GitHub Actions supplies the macOS/Xcode environment, allowing development from Windows while the cloud runner builds and, when valid signing assets are supplied, signs the IPA.
-
-<!-- CARDSP_STATUS_START -->
-## Development Status — Phase 4C
-
-**Status:** Windows desktop build and startup verified.
-
-### Implemented
-- Shared C++20 DSP library
-- 32-band parametric EQ interface
-- Peaking, low-pass, and high-pass biquad filters
-- Stereo DSP processing
-- Microphone input and spectrum visualization
-- Audio playback engine infrastructure
-- EQ configuration integration
-
-### Verification
-- Qt 6.12.0 with MinGW 13.1
-- CMake build completed successfully
-- CarDSPDesktop.exe launches without reported errors
-
-### Pending
-- Audible EQ processing verification
-- Hardware playback qualification (playback controls are implemented)
-- Live EQ adjustments
-- WAV, MP3, and FLAC decoding
-- macOS, Linux, iOS, and Android build verification
-
-### Windows Build
-Run from the CarDSP repository root:
+Use PowerShell 7 from the repository root. Install CMake 3.25 or newer, Visual Studio 2026 with C++ and a Windows SDK, and Python 3 for the PCM adapter test. The checked-in Windows preset selects Visual Studio 2026.
 
 ```powershell
-$env:Path = "C:\Qt\Tools\mingw1310_64\bin;C:\Qt\6.12.0\mingw_64\bin;$env:Path"
-cmake --build build/qt-desktop --parallel 4
-& ".\build\qt-desktop\CarDSPDesktop.exe"
+$ErrorActionPreference = 'Stop'
+try {
+    & ./build.ps1 -Platform Windows -Configuration Release
+    if (-not $?) { throw 'CarDSP build or tests failed.' }
+} catch {
+    Write-Error $_
+    exit 1
+}
 ```
 
-Initial playback support targets raw 48 kHz stereo Float32 PCM.
-<!-- CARDSP_STATUS_END -->
+The root build compiles SharedDSP and WindowsAudio. It does not build the Qt desktop application.
+
+For an already configured Qt desktop build, put the matching Qt and MinGW tools on PATH and run:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+try {
+    $env:Path = "C:\Qt\Tools\mingw1310_64\bin;C:\Qt\6.12.0\mingw_64\bin;$env:Path"
+    cmake --build build/qt-desktop --parallel 4
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop build failed.' }
+    ctest --test-dir build/qt-desktop --output-on-failure --no-tests=error
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop tests failed.' }
+} catch {
+    Write-Error $_
+    exit 1
+}
+```
+
+A fresh Qt build uses [UI/Desktop/CMakeLists.txt](UI/Desktop/CMakeLists.txt) as its source directory and requires Qt 6.8 or newer with Quick, QuickControls2, QuickDialogs2, and Multimedia. Match Qt's compiler/toolchain when configuring it. Launch with [Launch-CarDSP.ps1](Launch-CarDSP.ps1).
+
+## Continuous integration
+
+[Shared DSP CI](.github/workflows/shared-dsp.yml) builds and tests on Windows, Ubuntu, and macOS. It runs for SharedDSP, WindowsAudio, root CMake, and workflow changes, and can be started manually. Release assertions remain enabled for the C++ smoke tests.
+
+This branch does not currently contain the historical IPA, iOS simulator, or documentation-sync workflows. Do not assume it packages iPhone releases or synchronizes version documentation automatically. Qt desktop and Apple application validation are separate from Shared DSP CI.
+
+## Audio and privacy boundaries
+
+DSP applies to audio samples supplied to CarDSP. MusicKit playback does not itself provide access to Apple Music samples for DSP, and output-route support does not bypass iOS restrictions on other applications' audio.
+
+Settings and DSP profiles are intended to remain local. No advertising or analytics systems are intentionally included. Apple Music and microphone permissions support playback and user-requested analysis features. Never commit signing credentials or private keys.
+
+CarDSP is experimental and is not a guaranteed hearing or speaker protection system.
+
+## Repository maintenance
+
+See [Git troubleshooting](docs/GIT_TROUBLESHOOTING.md) for index-lock permission errors. Local backups, build outputs, and scratch exports should remain outside version control. Preserve local work before changing branches; never remove a lock belonging to a running Git operation.

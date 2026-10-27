@@ -1,6 +1,18 @@
 # CarDSP Changelog
 
-All release notes are maintained in this single file. `VERSION` is the canonical release version, and the documentation-sync workflow keeps release metadata in this changelog and the README aligned with future version bumps.
+All release notes are maintained in this file. `VERSION` is the source version. This branch has no documentation-sync workflow; update version references explicitly.
+
+## Unreleased — repository maintenance (2026-10-26)
+
+- Refresh README links, platform boundaries, Windows build instructions, and actual CI coverage.
+- Correct README source version to 0.1.0-alpha.7 without claiming a new published release.
+- Trigger Shared DSP CI for WindowsAudio changes, configure Release consistently, and fail if no tests are discovered.
+- Stop tracking local UI backups and an accidental Git diff-stat export, preserving the files locally.
+- Consolidate duplicate ignore rules and document Git index-lock permission troubleshooting.
+
+## 0.1.0-alpha.7 — source checkpoint
+
+`VERSION` records alpha.7. See PHASE_ONE_CHECKPOINT.md for the Windows PCM/EQ foundation, software validation, and remaining hardware checks. Publication of an alpha.7 release is not verified by this maintenance entry.
 
 ## 0.1.0-alpha.6
 
@@ -166,11 +178,11 @@ The first packaged alpha established the core application and CI/release foundat
 | RTA | `Sources/CarDSPCore/RTAAnalyzer.swift` | Frequency analysis |
 | Audio engine | `Sources/CarDSPApp/AudioEngineController.swift` | AVAudioEngine lifecycle and live metering |
 | Audio session | `Sources/CarDSPApp/AudioSessionController.swift` | Route/session management |
-| Output profiles | `Sources/CarDSPApp/AudioOutputProfileStore.swift` | Local per-route DSP presets |
+| Output profiles | `Sources/CarDSPApp/OutputProfileStore.swift` | Local per-route DSP presets |
 | Main UI | `Sources/CarDSPApp/ContentView.swift` | Player dashboard and route/profile controls |
 | Analyzer UI | `Sources/CarDSPApp/MicrophoneAnalyzerView.swift` | RTA and Auto-EQ target controls |
-| IPA workflow | `.github/workflows/ipa.yml` | Device build, packaging, optional signing, releases |
-| Docs sync | `.github/workflows/docs-sync.yml` | README/changelog version synchronization |
+| Shared DSP CI | `.github/workflows/shared-dsp.yml` | Cross-platform C++ build and tests |
+| Desktop UI | `UI/Desktop/Main.qml` | Windows Qt Quick interface |
 | Version | `VERSION` | Canonical release version |
 
 ## Security and signing

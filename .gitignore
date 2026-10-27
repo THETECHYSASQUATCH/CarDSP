@@ -24,16 +24,6 @@ cardsp-build-errors.log
 # Build outputs
 /build/
 
-# Local diagnostics and backups
-/CarDSP-*.log
-/CarDSP-Diagnostics.txt
-*.backup
-*.bak.*
-/UI/Desktop/backup-v0.1-*/
-
-# Generated build files
-/build/
-
 # Local development backups and scratch exports
 /CarDSP_Backups/
 *.phase4b-backup
@@ -41,3 +31,8 @@ cardsp-build-errors.log
 *.debug-backup
 /CarDSP_*_Source.txt
 /Apply-CarDSP-Step1.ps1
+
+# Local UI snapshots and accidental console exports
+*.backup-*
+*.dpi-backup
+/ersthetechysasquatchDocumentsGitHubCarDSP*
