@@ -61,6 +61,7 @@ private:
     bool selectOutput(int index);
     bool openPcm(const QString& path);
     bool startAt(qint64 milliseconds, bool paused);
+    bool startAtFrame(qint64 frame, bool paused);
     void finish();
     void handleState(QAudio::State state);
     static QAudioFormat pcmFormat();
@@ -77,7 +78,7 @@ private:
     QVariantList m_eqBands;
     bool m_playing = false, m_paused = false, m_loading = false, m_bypass = false;
     double m_volume = 0.25;
-    qint64 m_basePosition = 0, m_duration = 0;
+    qint64 m_baseFrame = 0, m_duration = 0;
     int m_recoveries = 0;
     QString m_lastError;
 };
