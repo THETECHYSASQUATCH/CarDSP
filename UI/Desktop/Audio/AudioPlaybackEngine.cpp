@@ -106,7 +106,8 @@ bool AudioPlaybackEngine::openPcm(const QString& path) {
     return startAt(0, false);
 }
 qint64 AudioPlaybackEngine::position() const {
-    return std::clamp(m_basePosition + (m_sink ? m_sink->processedUSecs() / 1000 : 0), qint64(0), m_duration);
+    const auto frames = m_baseFrame + (m_sink ? m_sink->processedUSecs() * 48 / 1000 : 0);
+    return std::clamp(frames / 48, qint64(0), m_duration);
 }
 void AudioPlaybackEngine::releaseOutput() {
     m_clock.stop();
@@ -118,9 +119,12 @@ void AudioPlaybackEngine::releaseOutput() {
     m_stream.reset();
 }
 bool AudioPlaybackEngine::startAt(qint64 milliseconds, bool paused) {
+    return startAtFrame(milliseconds * 48, paused);
+}
+bool AudioPlaybackEngine::startAtFrame(qint64 frame, bool paused) {
     releaseOutput();
-    m_basePosition = milliseconds;
-    if (!m_file || !m_file->seek(milliseconds * 48 * 8)) {
+    m_baseFrame = frame;
+    if (!m_file || !m_file->seek(frame * 8)) {
         stop(); setError("Cannot seek audio file."); return false;
     }
     m_processor.reset();
@@ -147,8 +151,8 @@ void AudioPlaybackEngine::handleState(QAudio::State state) {
         else if (m_stream->atEnd()) finish();
         else if (m_recoveries++ < 3) {
             // Rebuild from the output's consumed position, not the file's read-ahead position.
-            const auto at = position();
-            startAt(at, false);
+            const auto frame = m_baseFrame + m_sink->processedUSecs() * 48 / 1000;
+            startAtFrame(frame, false);
         } else { stop(); setError("Audio repeatedly underruns. Try another output or close busy applications."); }
     } else if (state == QAudio::StoppedState && m_sink->error() != QAudio::NoError) {
         const auto error = m_stream->failed() ? m_stream->errorString() : QString("Audio output stopped with an error.");
@@ -173,13 +177,13 @@ bool AudioPlaybackEngine::seek(qint64 milliseconds) {
 }
 void AudioPlaybackEngine::finish() {
     releaseOutput(); m_file.reset(); m_decoder.cancel();
-    m_basePosition = m_duration;
+    m_baseFrame = (m_duration * 48);
     m_playing = false; m_paused = false;
     emit playingChanged(); emit pausedChanged(); emit positionChanged();
 }
 void AudioPlaybackEngine::stop() {
     releaseOutput(); m_file.reset(); m_decoder.cancel();
-    m_basePosition = 0; m_duration = 0;
+    m_baseFrame = 0; m_duration = 0;
     m_playing = false; m_paused = false; setLoading(false);
     emit playingChanged(); emit pausedChanged(); emit positionChanged(); emit durationChanged();
 }
