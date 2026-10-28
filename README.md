@@ -2,23 +2,15 @@
 
 [GitHub repository](https://github.com/THETECHYSASQUATCH/CarDSP) · [Phase 2 development](https://github.com/THETECHYSASQUATCH/CarDSP/tree/development/phase_two) · [Actions](https://github.com/THETECHYSASQUATCH/CarDSP/actions) · [Releases](https://github.com/THETECHYSASQUATCH/CarDSP/releases)
 
-> **Phase 2 handoff (2026-10-27):** The user reports all seven Phase 1 alpha CI jobs passed and PR #13 merged. Phase 2 development has started on [`development/phase_two`](https://github.com/THETECHYSASQUATCH/CarDSP/tree/development/phase_two). See [Phase 2 agent notes](docs/PHASE_TWO_AGENT_NOTES.md). Passing CI does not certify the outstanding Phase 1 hardware and decoder acceptance checks.\n\n> **Phase 1 release preparation:** A new review branch resets the next Phase 1 alpha candidate to `0.1.0-phase1.alpha.1` without overwriting the historical alpha.1–alpha.7 series. Phase 1 remains **unverified/incomplete** until the [acceptance gates](DEVELOPMENT_STATUS.md) pass. See [release issue #12](https://github.com/THETECHYSASQUATCH/CarDSP/issues/12), [desktop build workflow](.github/workflows/phase-one-alpha.yml), and [manual prerelease publishing workflow](.github/workflows/publish-phase-one-alpha.yml). Windows, Linux and macOS desktop artifacts are planned; Android and iOS/iPadOS app builds are not yet implemented. Nothing has been released by this change.
+> **Phase 2 checkpoint (2026-10-27):** Phase 1 is DONE by user decision, except macOS/iOS, deferred to Phase 4. Phase 2 adds dashboard/navigation/numeric-input improvements and mono, stereo, 2.1, 3.1, 4.2 and 4.4 channel layouts. See the [roadmap](docs/PROJECT_CHECKLIST.md), [progress and evidence](DEVELOPMENT_STATUS.md), and [agent handoff](docs/PHASE_TWO_AGENT_NOTES.md).
 
-CarDSP is an audio DSP project with a portable C++20 processing library, a Windows Qt Quick desktop application, and Swift sources for Apple platforms.
+CarDSP is an audio DSP project with a portable C++20 core, Qt Quick application and Swift sources for Apple platforms.
 
-The version recorded in [VERSION](VERSION) on this release-preparation branch is **0.1.0-phase1.alpha.1**. This identifies the source version; it does not establish that a corresponding downloadable release has been published. Earlier alpha release notes remain in [CHANGELOG.md](CHANGELOG.md).
+[Phase 1 alpha.1](https://github.com/THETECHYSASQUATCH/CarDSP/releases/tag/phase1-alpha.1) is published with Windows, Linux and macOS desktop previews and an experimental release-signed Android ARM64 APK. Existing macOS downloads remain available despite deferred platform completion. No iOS binary is published. Hardware, decoder and Android device validation follow-ups remain documented; milestone completion does not claim those tests passed.
 
 ## Current development
 
-**Phase 2 is authorized.** Phase 1 automated CI is green per the user's report, while some Phase 1 acceptance gates still require evidence. Local playback changes compile but have not been tested; the capabilities below describe the published baseline. See the [continuation prompt](docs/PHASE_ONE_CONTINUATION_PROMPT.md) when ready to resume.
-
-New UI work continues on `development/phase_two`. See the [consolidated development status](DEVELOPMENT_STATUS.md) and [roadmap](docs/PROJECT_CHECKLIST.md).
-
-- Windows desktop: 32-band EQ interface, raw 48 kHz stereo Float32 PCM playback, output selection, volume, and EQ bypass.
-- Shared DSP: biquad filters, stereo processing, crossovers, alignment, polarity, routing, and a command-line PCM adapter.
-- Swift: reusable DSP core and Apple application sources. The historical Swift EQ has 31 bands; the Windows desktop interface has 32.
-- EQ edits apply on the next Play; volume and bypass can change during playback.
-- Audible EQ, device reconnection, latency, and playback completion still need hardware qualification. WAV/MP3/FLAC decoding and system-wide routing remain future work.
+Continue on `development/phase_two`. All seven jobs passed for commit `69a37ce` in [CI run 40611407100](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40611407100). The published alpha.1 packages are based on the earlier release tag, not this Phase 2 commit. New channel layouts remain roadmap work until their mappings, processing and tests are implemented.
 
 ## Build and test on Windows
 

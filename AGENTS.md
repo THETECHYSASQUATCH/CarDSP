@@ -2,7 +2,7 @@
 
 ## Current authorization and phase handoff
 
-The user explicitly authorized starting Phase 2 on 2026-10-27 after reporting that all seven Phase 1 alpha CI jobs passed and PR #13 was merged. Phase 2 work is authorized within the UI/dashboard/navigation/numeric-input scope in `docs/PROJECT_CHECKLIST.md`. Do not treat green CI as proof that all Phase 1 hardware, decoder, or UX acceptance gates passed; track those as outstanding.
+The user closed Phase 1 at the 2026-10-27 checkpoint, except macOS/iOS, deferred to Phase 4. Phase 2 is active on `development/phase_two` and includes dashboard/navigation/numeric-input UX plus mono, stereo, 2.1, 3.1, 4.2 and 4.4 channel layouts. Treat DEVELOPMENT_STATUS.md and docs/PHASE_TWO_AGENT_NOTES.md as persistent project memory. Preserve exact requested layout names and confirm 4.2/4.4 mapping before implementing. Milestone closure does not claim unperformed hardware, decoder or device tests passed.
 
 Do not merge to `main`, publish releases, alter signing, or make destructive local changes without the user's specific authorization. Commit targeted Phase 2 changes to `development/phase_two` and open review PRs as appropriate.
 

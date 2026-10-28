@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - release/phase-one-alpha-reset
+      - development/phase_one
       - development/phase_two
   pull_request:
     branches:
+      - development/phase_one
       - development/phase_two
 permissions:
   contents: read

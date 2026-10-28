@@ -4,13 +4,27 @@ Updated: 2026-10-27. Phase 2 branch: `development/phase_two`.
 
 ## Phase 1 — Windows desktop audio engine
 
-**Automated desktop CI passed per user and PR #13 merged; full hardware and decoder acceptance remains outstanding.** The authoritative acceptance checklist, baseline evidence and unfinished implementation are in [DEVELOPMENT_STATUS.md](../DEVELOPMENT_STATUS.md). Do not equate the earlier PCM/EQ foundation checkpoint with full Phase 1 completion.
+**Status: DONE by user checkpoint on 2026-10-27, except macOS/iOS, deferred to Phase 4.** Alpha.1 desktop and Android packages are published. Outstanding validation is carried forward in [DEVELOPMENT_STATUS.md](../DEVELOPMENT_STATUS.md); milestone closure does not mark unperformed tests as passed.
 
 The later-phase lists below are planning items inherited from the original roadmap. Some component work already exists (including editable numeric controls and shared DSP primitives), but phase-level acceptance has not been completed. Reconcile each item against current code when that phase is authorized. Do not automatically create later-phase branches.
 
-## Phase 2 — Dashboard, Navigation and UI
+## Phase 2 — Dashboard, Navigation, UI and Channel Layouts
 
-**Status: STARTED — branch and agent handoff prepared; feature checklist remains open.**
+**Status: ACTIVE — checkpoint 2026-10-27; UI and channel-layout features below remain planned until implemented and tested.**
+
+### Channel layouts (new Phase 2 features)
+
+- [ ] Mono
+- [ ] Stereo
+- [ ] 2.1
+- [ ] 3.1
+- [ ] 4.2
+- [ ] 4.4
+- [ ] Define and document each layout's speaker, output and subwoofer mapping; confirm the requested 4.2/4.4 semantics before coding
+- [ ] Add layout selection, labels and persistent preset configuration
+- [ ] Implement the routing and independent channel processing required for these layouts; a selector alone is not feature completion
+- [ ] Check output-device channel capacity and clearly handle unsupported layouts
+- [ ] Test channel identity/isolation, mono/stereo conversion, subwoofer routing, preset round trips and switching layouts during playback
 
 ### Navigation
 - [ ] Create dedicated Dashboard page
@@ -50,8 +64,8 @@ The later-phase lists below are planning items inherited from the original roadm
 
 **Status: PLANNED**
 
-- [ ] Implement flexible channel routing
-- [ ] Implement multi-channel DSP
+- [ ] Extend routing beyond the Phase 2 layout requirements
+- [ ] Extend multichannel DSP beyond the Phase 2 layouts
 - [ ] Implement high-pass crossovers
 - [ ] Implement low-pass crossovers
 - [ ] Implement speaker time alignment
@@ -73,13 +87,17 @@ The later-phase lists below are planning items inherited from the original roadm
 - [ ] Create installer
 - [ ] Test clean installation
 
-### macOS
+### macOS — deferred from Phase 1
+
+Existing CI/artifacts do not establish platform acceptance. Resume platform completion in Phase 4.
 - [ ] Port shared DSP engine
 - [ ] Implement compatible macOS audio backend
 - [ ] Develop macOS interface
 - [ ] Test macOS playback and DSP
 
-### iOS
+### iOS — deferred from Phase 1
+
+No iOS binary is published. Resume app/device work in Phase 4.
 - [ ] Port shared DSP processing
 - [ ] Develop mobile interface
 - [ ] Implement supported iOS audio integration

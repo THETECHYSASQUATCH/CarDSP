@@ -1,24 +1,29 @@
 # CarDSP development status
 
-Updated: 2026-10-27 (Phase 2 handoff).
+Updated: 2026-10-27 (Phase 2 checkpoint).
 
-## Latest Phase 1 CI and Phase 2 handoff
+## Current checkpoint and project memory
 
-The user reported **all seven Phase 1 alpha workflow jobs passed** after fixes and **PR #13 merged** into `development/phase_one` (merge commit `c7c0a2cb9c2e4937e77048aeffba92c813f5ddd1`). The original failed run [40573155716](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40573155716) exposed Linux float-equality regression, Windows relative deployment prefix, and macOS missing AGL framework. Follow-up changes addressed the test comparison, absolute install prefix, and newer Qt CI version. The successful follow-up run ID and actual artifact verification have **not** been independently recorded here.
+**Phase 1: DONE by the user's milestone decision on 2026-10-27, except macOS/iOS, deferred to Phase 4. Phase 2: ACTIVE on `development/phase_two`.** This is the planning checkpoint; unchecked hardware, decoder, deployment and Android device tests below remain validation follow-ups, not newly passed tests.
 
-The user authorized `development/phase_two` for dashboard, navigation, UI and numeric input work. **CI success establishes cross-platform compilation and automated test success, not full Phase 1 acceptance.** Decoder fixtures, physical audio output tests, and deployment launch checks remain unverified in this record. See [Phase 2 agent notes](docs/PHASE_TWO_AGENT_NOTES.md).
+Phase 2 scope now includes dashboard, navigation, numeric-input UX, and **mono, stereo, 2.1, 3.1, 4.2 and 4.4 channel layouts**. These are requested features, not completed implementation. Define the exact channel/subwoofer mapping for 4.2 and 4.4 before implementing routing; do not silently substitute another layout. See [roadmap](docs/PROJECT_CHECKLIST.md) and [Phase 2 agent notes](docs/PHASE_TWO_AGENT_NOTES.md).
 
+## Verified release and CI checkpoint
 
+- Phase 1 head `c7c0a2cb9c2e4937e77048aeffba92c813f5ddd1`: [successful desktop/core/Swift CI](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40593158346).
+- Phase 2 published head `69a37ce8da56094419148a91775a7d463b544b7c`: [all seven jobs passed](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40611407100), covering desktop and core DSP on Windows/Linux/macOS plus Swift tests. This does not establish hardware acceptance.
+- [Phase 1 alpha.1 release](https://github.com/THETECHYSASQUATCH/CarDSP/releases/tag/phase1-alpha.1) is published at `4a94731b205aefa8981f740653c3662d6df2a988`, with Windows/Linux/macOS packages and an experimental release-signed Android ARM64 APK. The release is not a rebuild of the latest Phase 2 source. Existing macOS artifacts remain available, but macOS completion is deferred.
+- Android was built from the release tag with isolated Android packaging adjustments (library install destination, no desktop deployment on Android, compile SDK 36), using Qt 6.12.0 and NDK 29.0.14206865. Signature, alignment and uploaded SHA-256 were verified; device installation/playback were not tested. Package metadata remains `org.qtproject.example.CarDSPDesktop`, versionName `1.0`, versionCode `1`; correct product identity/versioning before a future production release.
+- Android APK SHA-256: `8d5e4633bd35351560ec4ebf6d1e7751e42a2b9ff7039dd220a91fca80e4cc89`. Signing material stays outside Git; never include private keys or passwords in project notes.
+- Packaged `dist/` files are ignored and preserved locally. The Phase 1 push/PR CI-trigger edit remains local and uncommitted; this documentation checkpoint does not publish it.
 
-## Current decision and repository
+## Repository and continuation
 
-**Phase 1 CI: user-reported green and merged. Phase 1 full acceptance: outstanding checks remain. Phase 2: authorized and branch created.**
+Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`. Continue on `development/phase_two`. Leave the separate older `Documents\ChatGPT\CarDSP` checkout untouched. Do not merge to main, create later-phase branches, commit or push without the applicable user authorization.
 
-Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`, Phase 2 branch `development/phase_two` based on `development/phase_one`. GitHub default branch should be checked before any change. The separate `Documents\ChatGPT\CarDSP` checkout is older and dirty; leave it untouched.
+The sections below retain historical implementation notes and unverified acceptance work. They do not override the current Phase 1 milestone decision or imply the old working-tree state still applies.
 
-Published baseline: `c3bcdbc5fe7901d7208952b7d09a0a00d2cf90e5` (documentation/CI cleanup). The subsequent Phase 1 source changes and this documentation consolidation are included in the work-in-progress snapshot requested for publication on 2026-10-26. This snapshot does not establish Phase 1 completion. No full Phase 1 completion by Ollama is established: the inspected OpenCode log only showed a VERSION read, and commit authors do not identify a model.
-
-## Status at the stop point
+## Historical implementation checkpoint (before Phase 2)
 
 | Area | Published baseline | Local unfinished implementation | Acceptance still needed |
 | --- | --- | --- | --- |
@@ -68,7 +73,7 @@ Historical silent full-song processing tested 10,897,920 stereo frames (227.04 s
 
 The earlier checkpoint also recorded offscreen startup with no QML component-load failure, using explicit Qt plugin paths; font/device warnings occurred. That did not prove clean deployment. An earlier checklist marked direct Bluetooth PCM playback as done, but continuous DSP playback and audible qualification remained open.
 
-## Phase 1 acceptance checklist
+## Carried-forward validation follow-ups
 
 Check an item only after implementation and verification of the current code, not from a successful build or historical result.
 
@@ -123,7 +128,7 @@ Apple local-file decoding processes bounded 4096-frame chunks and queues up to t
 
 Experimental macOS routing requires a separately installed virtual stereo device, physical output selection, and microphone permission. It uses native EQ/HPF/subsonic/preamp, not the complete Swift dynamics/delay/polarity/subwoofer chain. Restore the system output manually afterward; device clocks, feedback, reconnects and latency need Mac validation. No driver installation or DRM bypass is provided. iOS MusicKit is separate from DSP; only accessible local audio samples can be processed. Apple signing, notarization and device builds were not verified on this Windows host.
 
-Older notes reported CI failures due to account spending limits and removal of failed/cancelled runs; they do not establish a current CI failure. This branch currently has Shared DSP CI, not historical IPA or documentation-sync workflows. VERSION is 0.1.0-alpha.7; publication of an alpha.7 release is not established here.
+Older notes reported CI failures due to account spending limits and removal of failed/cancelled runs; they do not establish a current CI failure. This branch currently has Shared DSP CI, not historical IPA or documentation-sync workflows. Those notes referred to VERSION 0.1.0-alpha.7. The current release checkpoint is phase1-alpha.1, recorded above.
 
 ## Document ownership
 
