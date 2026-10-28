@@ -32,6 +32,7 @@ qt_add_qml_module(CarDSPDesktop
     VERSION 1.0
     QML_FILES
         Main.qml
+        PageShell.qml
         EditableValue.qml
         Audio/SpectrumView.qml
 )
