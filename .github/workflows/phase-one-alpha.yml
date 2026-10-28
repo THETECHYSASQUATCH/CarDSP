@@ -1,6 +1,9 @@
 name: Phase 1 alpha build (desktop)
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - development/phase_one
   push:
     branches:
       - release/phase-one-alpha-reset
