@@ -1,7 +1,7 @@
 ---
 description: Plans CarDSP C++ and QML changes without modifying files
 mode: subagent
-model: ollama/cardsp-agent:8k
+model: ollama/cardsp-agent:32k
 temperature: 0.1
 tools:
   write: false

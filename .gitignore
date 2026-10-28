@@ -36,3 +36,4 @@ cardsp-build-errors.log
 *.backup-*
 *.dpi-backup
 /ersthetechysasquatchDocumentsGitHubCarDSP*
+/dist/

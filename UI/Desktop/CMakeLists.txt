@@ -76,11 +76,23 @@ if(BUILD_TESTING)
     endif()
 endif()
 
-# Install all Qt/QML and multimedia runtime dependencies, including native dialogs.
-install(TARGETS CarDSPDesktop RUNTIME DESTINATION bin)
-qt_generate_deploy_qml_app_script(
-    TARGET CarDSPDesktop
-    OUTPUT_SCRIPT desktop_deploy_script
-    NO_UNSUPPORTED_PLATFORM_ERROR
-)
-install(SCRIPT ${desktop_deploy_script})
+# Platform-specific installation and deployment
+if(ANDROID)
+    install(TARGETS CarDSPDesktop LIBRARY DESTINATION lib)
+else()
+    install(TARGETS CarDSPDesktop RUNTIME DESTINATION bin)
+
+    if(WIN32 OR APPLE)
+        qt_generate_deploy_qml_app_script(
+            TARGET CarDSPDesktop
+            OUTPUT_SCRIPT desktop_deploy_script
+            NO_UNSUPPORTED_PLATFORM_ERROR
+        )
+        install(SCRIPT ${desktop_deploy_script})
+    endif()
+endif()
+
+# Android SDK compatibility
+if(ANDROID)
+    set_property(TARGET CarDSPDesktop PROPERTY QT_ANDROID_COMPILE_SDK_VERSION 36)
+endif()

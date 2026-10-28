@@ -134,22 +134,22 @@ ApplicationWindow {
             RowLayout {
                 Layout.fillWidth: true
                 Label {
-                    text: audioPlaybackEngine.loading ? "Preparing audio…" : window.formatTime(audioPlaybackEngine.position)
+                    text: audioPlaybackEngine && audioPlaybackEngine.loading ? "Preparing audio…" : window.formatTime(audioPlaybackEngine ? audioPlaybackEngine.position : 0)
                     color: "white"
                 }
                 Slider {
                     id: playbackPosition
                     Layout.fillWidth: true
                     from: 0
-                    to: Math.max(1, audioPlaybackEngine.duration)
-                    enabled: audioPlaybackEngine.playing
-                    Binding { target: playbackPosition; property: "value"; value: audioPlaybackEngine.position; when: !playbackPosition.pressed }
+                    to: Math.max(1, audioPlaybackEngine ? audioPlaybackEngine.duration : 0)
+                    enabled: audioPlaybackEngine ? audioPlaybackEngine.playing : false
+                    Binding { target: playbackPosition; property: "value"; value: audioPlaybackEngine ? audioPlaybackEngine.position : 0; when: !playbackPosition.pressed }
                     onPressedChanged: { if (!pressed && enabled) audioPlaybackEngine.seek(Math.round(value)) }
                     Keys.onReleased: function(event) {
                         if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) audioPlaybackEngine.seek(Math.round(value))
                     }
                 }
-                Label { text: window.formatTime(audioPlaybackEngine.duration); color: "white" }
+                Label { text: window.formatTime(audioPlaybackEngine ? audioPlaybackEngine.duration : 0); color: "white" }
             }
 
             RowLayout {

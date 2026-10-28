@@ -1,7 +1,7 @@
 ---
 description: Tests CarDSP changes and diagnoses build failures
 mode: subagent
-model: ollama/cardsp-agent:8k
+model: ollama/cardsp-agent:32k
 temperature: 0.1
 permission:
   edit: deny

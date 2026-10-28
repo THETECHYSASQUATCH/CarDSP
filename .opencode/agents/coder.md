@@ -1,7 +1,7 @@
 ---
 description: Implements approved CarDSP C++ and QML changes
 mode: subagent
-model: ollama/cardsp-agent:8k
+model: ollama/cardsp-agent:32k
 temperature: 0.1
 permission:
   edit: ask

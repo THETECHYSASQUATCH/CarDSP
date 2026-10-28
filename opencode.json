@@ -22,7 +22,9 @@
         },
         "bash": "ask",
         "edit": "ask"
-      }
+      },
+      "model": "ollama/cardsp-agent:32k"
     }
-  }
+  },
+  "model": "ollama/cardsp-agent:32k"
 }
