@@ -57,6 +57,7 @@ ApplicationWindow {
 
     header: Rectangle {
         id: playbackToolbar
+        objectName: "playbackToolbar"
         height: 154
         color: "#172631"
 
@@ -227,6 +228,7 @@ ApplicationWindow {
     // Phase 3A.3 - Microphone capture controls
     footer: Rectangle {
         id: microphonePanel
+        objectName: "microphonePanel"
 
         height: 92
         color: "#131e27"
@@ -412,6 +414,7 @@ ApplicationWindow {
 
     ListModel {
         id: eqBands
+        objectName: "eqBandsModel"
     }
 
     function refreshBands() {
