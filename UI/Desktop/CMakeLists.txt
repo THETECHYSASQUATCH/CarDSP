@@ -60,6 +60,13 @@ target_include_directories(CarDSPDesktop PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(cardsp_decoder_tests
+        tests/decoder_tests.cpp Audio/AudioFileDecoder.cpp Audio/AudioFileDecoder.hpp)
+    target_include_directories(cardsp_decoder_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(cardsp_decoder_tests PRIVATE Qt6::Core Qt6::Multimedia)
+    add_test(NAME audio_decoder COMMAND cardsp_decoder_tests)
+    set_tests_properties(audio_decoder PROPERTIES TIMEOUT 90)
+
     add_executable(cardsp_controller_tests
         tests/controller_tests.cpp
         Audio/AudioPlaybackEngine.cpp Audio/AudioPlaybackEngine.hpp
