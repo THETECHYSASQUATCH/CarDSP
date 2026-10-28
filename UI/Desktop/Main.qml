@@ -60,9 +60,19 @@ ApplicationWindow {
         height: 154
         color: "#172631"
 
-        ColumnLayout {
+        ScrollView {
+            id: playbackScroll
             anchors.fill: parent
-            anchors.margins: 10
+            clip: true
+            contentWidth: Math.max(availableWidth, 1120)
+            contentHeight: availableHeight
+            ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+
+        ColumnLayout {
+            x: 10
+            y: 6
+            width: playbackScroll.contentWidth - 20
+            height: playbackScroll.availableHeight - 20
             spacing: 6
 
             RowLayout {
@@ -149,6 +159,19 @@ ApplicationWindow {
                         if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) audioPlaybackEngine.seek(Math.round(value))
                     }
                 }
+                EditableValue {
+                    Layout.preferredWidth: 110
+                    parameterName: "Playback position"
+                    unit: "s"
+                    minimumValue: 0
+                    maximumValue: audioPlaybackEngine ? audioPlaybackEngine.duration / 1000 : 0
+                    decimals: 3
+                    value: audioPlaybackEngine ? audioPlaybackEngine.position / 1000 : 0
+                    enabled: audioPlaybackEngine ? audioPlaybackEngine.playing : false
+                    onValueCommitted: function(newValue) {
+                        audioPlaybackEngine.seek(Math.round(newValue * 1000))
+                    }
+                }
                 Label { text: window.formatTime(audioPlaybackEngine ? audioPlaybackEngine.duration : 0); color: "white" }
             }
 
@@ -198,6 +221,7 @@ ApplicationWindow {
                 }
             }
         }
+        }
     }
 
     // Phase 3A.3 - Microphone capture controls
@@ -207,9 +231,19 @@ ApplicationWindow {
         height: 92
         color: "#131e27"
 
-        RowLayout {
+        ScrollView {
+            id: microphoneScroll
             anchors.fill: parent
-            anchors.margins: 12
+            clip: true
+            contentWidth: Math.max(availableWidth, 850)
+            contentHeight: availableHeight
+            ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+
+        RowLayout {
+            x: 12
+            y: 6
+            width: microphoneScroll.contentWidth - 24
+            height: microphoneScroll.availableHeight - 20
             spacing: 12
 
             Label {
@@ -290,6 +324,7 @@ ApplicationWindow {
                            : "#aabbcc"
                 }
             }
+        }
         }
     }
 
