@@ -32,6 +32,7 @@ qt_add_qml_module(CarDSPDesktop
     VERSION 1.0
     QML_FILES
         Main.qml
+        PageShell.qml
         EditableValue.qml
         Audio/SpectrumView.qml
 )
@@ -60,6 +61,9 @@ target_include_directories(CarDSPDesktop PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    target_compile_definitions(CarDSPDesktop PRIVATE CARDSP_UI_SMOKE_TEST)
+    add_test(NAME desktop_ui_smoke COMMAND CarDSPDesktop --ui-smoke-test -platform offscreen)
+    set_tests_properties(desktop_ui_smoke PROPERTIES TIMEOUT 30 ENVIRONMENT "QT_QUICK_BACKEND=software")
     add_executable(cardsp_playback_tests tests/playback_tests.cpp)
     target_include_directories(cardsp_playback_tests PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"

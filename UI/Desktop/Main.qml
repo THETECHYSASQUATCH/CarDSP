@@ -57,12 +57,23 @@ ApplicationWindow {
 
     header: Rectangle {
         id: playbackToolbar
+        objectName: "playbackToolbar"
         height: 154
         color: "#172631"
 
-        ColumnLayout {
+        ScrollView {
+            id: playbackScroll
             anchors.fill: parent
-            anchors.margins: 10
+            clip: true
+            contentWidth: Math.max(availableWidth, 1120)
+            contentHeight: availableHeight
+            ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+
+        ColumnLayout {
+            x: 10
+            y: 6
+            width: playbackScroll.contentWidth - 20
+            height: playbackScroll.availableHeight - 20
             spacing: 6
 
             RowLayout {
@@ -149,6 +160,19 @@ ApplicationWindow {
                         if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) audioPlaybackEngine.seek(Math.round(value))
                     }
                 }
+                EditableValue {
+                    Layout.preferredWidth: 110
+                    parameterName: "Playback position"
+                    unit: "s"
+                    minimumValue: 0
+                    maximumValue: audioPlaybackEngine ? audioPlaybackEngine.duration / 1000 : 0
+                    decimals: 3
+                    value: audioPlaybackEngine ? audioPlaybackEngine.position / 1000 : 0
+                    enabled: audioPlaybackEngine ? audioPlaybackEngine.playing : false
+                    onValueCommitted: function(newValue) {
+                        audioPlaybackEngine.seek(Math.round(newValue * 1000))
+                    }
+                }
                 Label { text: window.formatTime(audioPlaybackEngine ? audioPlaybackEngine.duration : 0); color: "white" }
             }
 
@@ -198,18 +222,30 @@ ApplicationWindow {
                 }
             }
         }
+        }
     }
 
     // Phase 3A.3 - Microphone capture controls
     footer: Rectangle {
         id: microphonePanel
+        objectName: "microphonePanel"
 
         height: 92
         color: "#131e27"
 
-        RowLayout {
+        ScrollView {
+            id: microphoneScroll
             anchors.fill: parent
-            anchors.margins: 12
+            clip: true
+            contentWidth: Math.max(availableWidth, 850)
+            contentHeight: availableHeight
+            ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+
+        RowLayout {
+            x: 12
+            y: 6
+            width: microphoneScroll.contentWidth - 24
+            height: microphoneScroll.availableHeight - 20
             spacing: 12
 
             Label {
@@ -290,6 +326,7 @@ ApplicationWindow {
                            : "#aabbcc"
                 }
             }
+        }
         }
     }
 
@@ -377,6 +414,7 @@ ApplicationWindow {
 
     ListModel {
         id: eqBands
+        objectName: "eqBandsModel"
     }
 
     function refreshBands() {
@@ -434,369 +472,53 @@ ApplicationWindow {
         }
     }
 
-    RowLayout {
+    PageShell {
+        id: navigation
+        objectName: "navigationShell"
         anchors.fill: parent
-        spacing: 0
+        anchors.margins: 12
 
-        Rectangle {
-            Layout.preferredWidth: 230
-            Layout.fillHeight: true
-            color: "#131e27"
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 22
-                spacing: 14
-
-                Label {
-                    text: "CarDSP"
-                    font.pixelSize: 30
-                    font.bold: true
-                    color: window.accent
-                }
-
-                Label {
-                    text: "PRO AUDIO PROCESSOR"
-                    font.pixelSize: 11
-                    color: "#8ca2b3"
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 1
-                    color: "#34424e"
-                }
-
-                Repeater {
-                    model: [
-                        "Dashboard",
-                        "32-Band Equalizer",
-                        "Channel Routing",
-                        "Crossovers",
-                        "Time Alignment",
-                        "Presets",
-                        "Settings"
-                    ]
-
-                    delegate: Button {
-                        required property string modelData
-                        required property int index
-
-                        Layout.fillWidth: true
-                        text: modelData
-                        highlighted: navigation.currentIndex === index
-
-                        onClicked: navigation.currentIndex = index
-                    }
-                }
-
-                Item {
-                    Layout.fillHeight: true
-                }
-
-                Label {
-                    text: "CarDSP v0.1 UI Preview"
-                    color: "#8ca2b3"
-                    font.pixelSize: 11
-                }
+        ColumnLayout {
+            objectName: "dashboardPage"
+            Label { text: "Your audio workspace"; font.pixelSize: 22; color: window.accent }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: window.foreground
+                text: audioPlaybackEngine && audioPlaybackEngine.loading ? "Preparing audio"
+                      : audioPlaybackEngine && audioPlaybackEngine.playing
+                        ? (audioPlaybackEngine.paused ? "Playback paused" : "Playback active")
+                        : "Ready to open a local audio file"
             }
+            Label { text: eqBands.count + " EQ bands · Stereo playback"; color: window.foreground }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: "Playback controls stay above every page. Microphone capture stays below. Multichannel routing, crossovers and time alignment are previews."
+                color: "#9cb2bf"
+            }
+            Button { text: "Open equalizer"; onClicked: navigation.selectPage(1) }
+            Button { text: "View response and spectrum"; onClicked: navigation.selectPage(2) }
+            Item { Layout.fillHeight: true }
         }
 
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 25
-                spacing: 16
-
-                RowLayout {
+        ColumnLayout {
+            objectName: "equalizerPage"
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: "EQ channel"; color: window.foreground }
+                ComboBox {
+                    id: channelBox
                     Layout.fillWidth: true
-
-                    Label {
-                        text: navigation.currentIndex === 1
-                              ? "32-Band Parametric Equalizer"
-                              : navigation.currentIndex === 2
-                                ? "Channel Routing"
-                                : "CarDSP Dashboard"
-
-                        font.pixelSize: 25
-                        font.bold: true
-                        color: window.foreground
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Switch {
-                        text: "EQ Enabled"
-                        checked: window.eqEnabled
-                        onToggled: { audioPlaybackEngine.bypass = !checked; responseGraph.requestPaint() }
-                    }
+                    model: window.channels
+                    onActivated: { window.selectedChannel = currentIndex; eqController.channel = currentIndex }
                 }
-
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Label {
-                        text: "Speaker Layout"
-                        color: window.foreground
-                    }
-
-                    ComboBox {
-                        id: layoutBox
-
-                        model: [
-                            "5.1", "5.2",
-                            "6.1", "6.2",
-                            "7.1", "7.2",
-                            "6.1 Active"
-                        ]
-
-                        currentIndex: 6
-
-                        onActivated: {
-                            window.selectedLayout = currentText
-                        }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Label {
-                        text: "Channel"
-                        color: window.foreground
-                    }
-
-                    ComboBox {
-                        id: channelBox
-                        Layout.preferredWidth: 230
-
-                        model: window.channels
-
-                        onActivated: { window.selectedChannel = currentIndex; eqController.channel = currentIndex }
-                    }
+                Switch {
+                    text: "EQ"
+                    checked: window.eqEnabled
+                    onToggled: { audioPlaybackEngine.bypass = !checked; responseGraph.requestPaint() }
                 }
-
-                // CarDSP preset management
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 112
-                    radius: 10
-                    color: "#1b2a36"
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 8
-
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            Label {
-                                text: "DSP Presets"
-                                font.bold: true
-                                color: window.foreground
-                            }
-
-                            ComboBox {
-                                id: presetSelector
-                                Layout.preferredWidth: 240
-                                model: presetManager ? presetManager.presets : []
-                            }
-
-                            TextField {
-                                id: presetName
-                                Layout.fillWidth: true
-                                placeholderText: "Preset name"
-                                maximumLength: 64
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            Button {
-                                text: "Save"
-                                onClicked: {
-                                    const name = presetName.text.trim()
-                                    if (!name) return
-
-                                    if (eqController.saveSettings()) {
-                                        presetManager.savePreset(
-                                            name,
-                                            eqController.settingsFilePath()
-                                        )
-                                    }
-                                }
-                            }
-
-                            Button {
-                                text: "Load"
-                                enabled: presetSelector.currentIndex >= 0
-                                onClicked: {
-                                    eqController.activatePreset(
-                                        presetSelector.currentText,
-                                        presetManager
-                                    )
-                                }
-                            }
-
-                            Button {
-                                text: "Duplicate"
-                                enabled: presetSelector.currentIndex >= 0
-                                onClicked: {
-                                    presetManager.duplicatePreset(
-                                        presetSelector.currentText,
-                                        presetName.text.trim()
-                                    )
-                                }
-                            }
-
-                            Button {
-                                text: "Rename"
-                                enabled: presetSelector.currentIndex >= 0
-                                onClicked: {
-                                    presetManager.renamePreset(
-                                        presetSelector.currentText,
-                                        presetName.text.trim()
-                                    )
-                                }
-                            }
-
-                            Button {
-                                text: "Delete"
-                                enabled: presetSelector.currentIndex >= 0
-                                onClicked: {
-                                    presetManager.deletePreset(
-                                        presetSelector.currentText
-                                    )
-                                }
-                            }
-
-                            Item {
-                                Layout.fillWidth: true
-                            }
-
-                            Button {
-                                text: "Refresh"
-                                onClicked: presetManager.refresh()
-                            }
-                        }
-                    }
-                }
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Button {
-                        text: "EQ Response"
-                        checkable: true
-                        checked: window.graphMode === "eq"
-                        onClicked: window.graphMode = "eq"
-                    }
-
-                    Button {
-                        text: "Live Spectrum"
-                        checkable: true
-                        checked: window.graphMode === "spectrum"
-                        onClicked: window.graphMode = "spectrum"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Label {
-                        text: (microphoneManager && microphoneManager.capturing) ? "MIC LIVE" : "MIC STOPPED"
-                        color: (microphoneManager && microphoneManager.capturing) ? window.accent : "#9cb2bf"
-                    }
-                }
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 260
-
-                    radius: 12
-                    color: window.panel
-
-                    Canvas {
-                        id: responseGraph
-                        visible: window.graphMode === "eq"
-                        anchors.fill: parent
-                        anchors.margins: 20
-
-                        onPaint: {
-                            const ctx = getContext("2d")
-                            ctx.reset()
-
-                            const w = width
-                            const h = height
-
-                            ctx.strokeStyle = "#354755"
-                            ctx.lineWidth = 1
-
-                            for (let i = 0; i <= 8; i++) {
-                                let x = i * w / 8
-                                ctx.beginPath()
-                                ctx.moveTo(x, 0)
-                                ctx.lineTo(x, h)
-                                ctx.stroke()
-                            }
-
-                            for (let i = 0; i <= 6; i++) {
-                                let y = i * h / 6
-                                ctx.beginPath()
-                                ctx.moveTo(0, y)
-                                ctx.lineTo(w, y)
-                                ctx.stroke()
-                            }
-
-                            ctx.strokeStyle = window.accent
-                            ctx.lineWidth = 3
-                            ctx.beginPath()
-
-                            const response = eqController.response
-
-                            for (let i = 0; i < response.length; ++i) {
-                                const frequency = response[i].frequency
-                                const gain = window.eqEnabled
-                                           ? response[i].gain : 0.0
-
-                                const x = Math.log(frequency / 20.0)
-                                          / Math.log(1000.0) * w
-
-                                const y = h / 2 - (gain / 24.0) * h
-
-                                if (i === 0)
-                                    ctx.moveTo(x, y)
-                                else
-                                    ctx.lineTo(x, y)
-                            }
-
-                            ctx.stroke()
-                        }
-                    }
-
-                    Label {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.margins: 12
-                        visible: window.graphMode === "eq"
-                        text: "Frequency Response — Live Parametric EQ"
-                        color: "#9cb2bf"
-                    }
-
-                    SpectrumView {
-                        id: spectrumGraphView
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        visible: window.graphMode === "spectrum"
-                        spectrumData: spectrumAnalyzer ? spectrumAnalyzer.bands : []
-                    }
-                }
-
+            }
                 Label {
                     text: "32 PARAMETRIC EQ BANDS — " +
                           window.channels[window.selectedChannel]
@@ -1012,12 +734,257 @@ ApplicationWindow {
                         }
                     }
                 }
-            }
-        }
-    }
 
-    Item {
-        id: navigation
-        property int currentIndex: 1
+        }
+
+        ColumnLayout {
+            objectName: "spectrumPage"
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Button {
+                        text: "EQ Response"
+                        checkable: true
+                        checked: window.graphMode === "eq"
+                        onClicked: window.graphMode = "eq"
+                    }
+
+                    Button {
+                        text: "Live Spectrum"
+                        checkable: true
+                        checked: window.graphMode === "spectrum"
+                        onClicked: window.graphMode = "spectrum"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Label {
+                        text: (microphoneManager && microphoneManager.capturing) ? "MIC LIVE" : "MIC STOPPED"
+                        color: (microphoneManager && microphoneManager.capturing) ? window.accent : "#9cb2bf"
+                    }
+                }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 260
+                    Layout.fillHeight: true
+
+                    radius: 12
+                    color: window.panel
+
+                    Canvas {
+                        id: responseGraph
+                        visible: window.graphMode === "eq"
+                        anchors.fill: parent
+                        anchors.margins: 20
+
+                        onPaint: {
+                            const ctx = getContext("2d")
+                            ctx.reset()
+
+                            const w = width
+                            const h = height
+
+                            ctx.strokeStyle = "#354755"
+                            ctx.lineWidth = 1
+
+                            for (let i = 0; i <= 8; i++) {
+                                let x = i * w / 8
+                                ctx.beginPath()
+                                ctx.moveTo(x, 0)
+                                ctx.lineTo(x, h)
+                                ctx.stroke()
+                            }
+
+                            for (let i = 0; i <= 6; i++) {
+                                let y = i * h / 6
+                                ctx.beginPath()
+                                ctx.moveTo(0, y)
+                                ctx.lineTo(w, y)
+                                ctx.stroke()
+                            }
+
+                            ctx.strokeStyle = window.accent
+                            ctx.lineWidth = 3
+                            ctx.beginPath()
+
+                            const response = eqController.response
+
+                            for (let i = 0; i < response.length; ++i) {
+                                const frequency = response[i].frequency
+                                const gain = window.eqEnabled
+                                           ? response[i].gain : 0.0
+
+                                const x = Math.log(frequency / 20.0)
+                                          / Math.log(1000.0) * w
+
+                                const y = h / 2 - (gain / 24.0) * h
+
+                                if (i === 0)
+                                    ctx.moveTo(x, y)
+                                else
+                                    ctx.lineTo(x, y)
+                            }
+
+                            ctx.stroke()
+                        }
+                    }
+
+                    Label {
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.margins: 12
+                        visible: window.graphMode === "eq"
+                        text: "Frequency Response — Live Parametric EQ"
+                        color: "#9cb2bf"
+                    }
+
+                    SpectrumView {
+                        id: spectrumGraphView
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        visible: window.graphMode === "spectrum"
+                        spectrumData: spectrumAnalyzer ? spectrumAnalyzer.bands : []
+                    }
+                }
+
+
+        }
+
+        ColumnLayout {
+                Label { text: "Channel Routing preview"; color: window.accent; font.pixelSize: 20 }
+                Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Current playback is stereo. Channel labels select stored EQ settings; they do not route physical outputs. Mono, stereo, 2.1, 3.1, 4.2 and 4.4 routing remain unimplemented. The 4.2 and 4.4 speaker/subwoofer mappings need confirmation before routing is built."; color: window.foreground }
+                Item { Layout.fillHeight: true }
+            }
+        ColumnLayout {
+                Label { text: "Crossovers preview"; color: window.accent; font.pixelSize: 20 }
+                Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Dedicated crossover routing is not implemented. The equalizer page retains its existing low-pass and high-pass band filters."; color: window.foreground }
+                Item { Layout.fillHeight: true }
+            }
+        ColumnLayout {
+                Label { text: "Time Alignment preview"; color: window.accent; font.pixelSize: 20 }
+                Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Per-output delay and speaker alignment are not implemented."; color: window.foreground }
+                Item { Layout.fillHeight: true }
+            }
+
+        ColumnLayout {
+            objectName: "presetsPage"
+                // CarDSP preset management
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 112
+                    radius: 10
+                    color: "#1b2a36"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Label {
+                                text: "DSP Presets"
+                                font.bold: true
+                                color: window.foreground
+                            }
+
+                            ComboBox {
+                                id: presetSelector
+                                Layout.preferredWidth: 240
+                                model: presetManager ? presetManager.presets : []
+                            }
+
+                            TextField {
+                                id: presetName
+                                Layout.fillWidth: true
+                                placeholderText: "Preset name"
+                                maximumLength: 64
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Button {
+                                text: "Save"
+                                onClicked: {
+                                    const name = presetName.text.trim()
+                                    if (!name) return
+
+                                    if (eqController.saveSettings()) {
+                                        presetManager.savePreset(
+                                            name,
+                                            eqController.settingsFilePath()
+                                        )
+                                    }
+                                }
+                            }
+
+                            Button {
+                                text: "Load"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    eqController.activatePreset(
+                                        presetSelector.currentText,
+                                        presetManager
+                                    )
+                                }
+                            }
+
+                            Button {
+                                text: "Duplicate"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    presetManager.duplicatePreset(
+                                        presetSelector.currentText,
+                                        presetName.text.trim()
+                                    )
+                                }
+                            }
+
+                            Button {
+                                text: "Rename"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    presetManager.renamePreset(
+                                        presetSelector.currentText,
+                                        presetName.text.trim()
+                                    )
+                                }
+                            }
+
+                            Button {
+                                text: "Delete"
+                                enabled: presetSelector.currentIndex >= 0
+                                onClicked: {
+                                    presetManager.deletePreset(
+                                        presetSelector.currentText
+                                    )
+                                }
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
+                            }
+
+                            Button {
+                                text: "Refresh"
+                                onClicked: presetManager.refresh()
+                            }
+                        }
+                    }
+                }
+
+            Item { Layout.fillHeight: true }
+        }
+
+        ColumnLayout {
+                Label { text: "Settings"; color: window.accent; font.pixelSize: 20 }
+                Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Choose playback outputs, volume and bypass in the persistent playback toolbar. Device capture controls remain in the microphone toolbar. Raw PCM input must be 48 kHz stereo Float32."; color: window.foreground }
+                Item { Layout.fillHeight: true }
+            }
     }
 }
