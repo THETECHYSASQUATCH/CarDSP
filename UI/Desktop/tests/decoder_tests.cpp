@@ -97,15 +97,15 @@ int main(int argc, char** argv) {
             result = decode(decoder, bad.fileName());
             check(result.path.isEmpty() && !result.error.isEmpty(), "malformed input accepted");
 
-            int signals = 0;
-            auto ready = QObject::connect(&decoder, &AudioFileDecoder::ready, &app, [&] { ++signals; });
-            auto failed = QObject::connect(&decoder, &AudioFileDecoder::failed, &app, [&] { ++signals; });
+            int signalCount = 0;
+            auto ready = QObject::connect(&decoder, &AudioFileDecoder::ready, &app, [&] { ++signalCount; });
+            auto failed = QObject::connect(&decoder, &AudioFileDecoder::failed, &app, [&] { ++signalCount; });
             check(decoder.decode(stereo), "cancel test start");
             decoder.cancel();
             QEventLoop pending;
             QTimer::singleShot(100, &pending, &QEventLoop::quit);
             pending.exec();
-            check(signals == 0, "cancelled decoder delivered stale completion");
+            check(signalCount == 0, "cancelled decoder delivered stale completion");
             QObject::disconnect(ready); QObject::disconnect(failed);
             result = decode(decoder, stereo);
             inspect(result);

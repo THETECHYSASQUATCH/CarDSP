@@ -1,0 +1,39 @@
+name: Xcode Phase 1 macOS
+
+on:
+  push:
+    branches:
+      - development/phase_one
+      - 'feature/xcode-phase1-*'
+    paths:
+      - 'Package.swift'
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'SharedDSP/**'
+      - 'CMakeLists.txt'
+      - 'scripts/build-phase1-xcode.sh'
+      - '.github/workflows/xcode-phase1.yml'
+  pull_request:
+    paths:
+      - 'Package.swift'
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'SharedDSP/**'
+      - 'CMakeLists.txt'
+      - 'scripts/build-phase1-xcode.sh'
+      - '.github/workflows/xcode-phase1.yml'
+  workflow_dispatch:
+
+jobs:
+  phase1-macos:
+    name: Build and test Phase 1 on Xcode
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+      - name: Build SwiftUI app and test DSP engines
+        run: bash scripts/build-phase1-xcode.sh
