@@ -1,10 +1,31 @@
 # CarDSP development status
 
-Updated: 2026-10-26 (America/Chicago).
+Updated: 2026-11-06 (America/Chicago).
 
-## Current decision and repository
+## Current verified checkpoint — November 6, 2026
 
-**Phase 1 is IN PROGRESS. Coding is stopped at the user's request.** The latest request is documentation consolidation and preparation of agent instructions and a continuation prompt. Resume implementation only on an explicit user request.
+**Phase 1 remains in progress, but implementation and CI progressed after the October 26 stop point.** The user explicitly resumed build preparation. `development/phase_one` HEAD is `18b39e9dcef9ba0fc08ddd8bb17013c288e679dc`. PR #17 merged Xcode build tooling. [Xcode CI run 41243847211](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/41243847211) passed at that SHA. [Phase 1 desktop run 41243662610](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/41243662610) passed Windows, Ubuntu and macOS Qt desktop jobs, portable DSP jobs and macOS Swift core tests on the merged feature branch before merge. The current default-branch desktop matrix was not separately rerun in this review.
+
+**Source present:** `UI/Desktop/tests/controller_tests.cpp` and `decoder_tests.cpp` are now registered by the Qt CMake project alongside silent playback and QML editable-values tests. The Qt desktop contains playback, decoder, live-EQ, preset, microphone and 32-band UI source; the Swift package contains the `CarDSPApp` macOS executable and reusable Swift core. CI passes do not prove audible hardware, decoder format breadth, real-time stability or clean deployment.
+
+**Local build preparation:** [draft PR #18](https://github.com/THETECHYSASQUATCH/CarDSP/pull/18) adds `scripts/build-phase1-linux.sh`, `docs/LINUX_PHASE1_BUILD.md`, and `docs/PHASE1_LOCAL_VALIDATION.md`. This PR is unmerged; its new script has not been executed locally. The existing Xcode script is already merged. Neither local Mac nor local Linux builds were run in this review.
+
+**Phase 2 is separate:** PR #16 merged navigation changes into `development/phase_two`, but [desktop CI run 40952452981](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40952452981) failed `PageNavigation::test_compactNavigationPreservesSelection` and `test_eachPageIsExclusive` (`tst_navigation.qml`, visibility assertions). Other desktop tests in that run passed. Phase 2 must not be described as fully validated.
+
+### Working vs pending
+
+| Component | Working/verified evidence | Still implementing or validating |
+| --- | --- | --- |
+| Portable C++ DSP | CI builds and tests passed on Windows, Ubuntu and macOS | Physical audio integration and full parity |
+| Qt desktop | CI compiled/tested on all three desktop OSes; 32-band EQ, presets, decoder/controller source present | Local launch, codec fixture breadth, audible behavior, clean install and hardware edge cases |
+| SwiftUI/macOS | Swift package app build and Swift/C++ tests passed in Xcode CI | Local Xcode run, signed `.app`, hardware playback and packaging |
+| Linux | Qt desktop and core CI jobs passed | New local script execution, clean-folder launch, runtime plugin checks |
+| Phase 2 UI | Navigation source merged on Phase 2 branch | Two QML visibility test failures; full regression pass |
+| Mobile | Swift source and platform assets present | Real iOS/iPadOS app target, Android host, installable packages and signing |
+
+## Historical October 26 stop-point notes (retained for provenance)
+
+**At the October 26 checkpoint**, Phase 1 coding was stopped at the user's request. This was superseded by the November 6 explicit build-preparation request; historical details below are retained, not current work authorization.
 
 Authoritative checkout: `C:\Users\thetechysasquatch\Documents\GitHub\CarDSP`, branch `development/phase_one`. GitHub's default branch is also `development/phase_one`. The separate `Documents\ChatGPT\CarDSP` checkout is older and dirty; leave it untouched.
 
@@ -34,7 +55,7 @@ New: `UI/Desktop/Audio/AudioFileDecoder.cpp`, `.hpp`, `PlaybackOutput.cpp`, and 
 
 The decoder requests 48 kHz stereo Float32, stores decoded data in an auto-removed temporary file, has a 4 GiB output limit and a 30-second no-buffer timeout, and decodes the full file before playback. Verify lifecycle, disk failure, unsupported formats, cancellation, and signal reentrancy. Do not promise immediate streamed startup.
 
-The output abstraction was added so controller failures can be tested without speakers. **Those new controller/decoder tests were not written before coding stopped.** Existing CTest registration still contains only playback_silent and editable_values for the desktop project.
+The output abstraction was added so controller failures can be tested without speakers. **At this historical stop point**, those controller/decoder tests were not yet written. They are now present and registered; see the current checkpoint above.
 
 Live EQ uses per-stream processor state, a try-lock mailbox, and a 256-frame transition. This is not proof of hard real-time safety or glitch-free audio. File I/O and QIODevice buffering still need review. The selected EQ channel remains applied to both stereo channels; the UI layout selector is not a multichannel router.
 
@@ -61,6 +82,9 @@ Historical silent full-song processing tested 10,897,920 stereo frames (227.04 s
 The earlier checkpoint also recorded offscreen startup with no QML component-load failure, using explicit Qt plugin paths; font/device warnings occurred. That did not prove clean deployment. An earlier checklist marked direct Bluetooth PCM playback as done, but continuous DSP playback and audible qualification remained open.
 
 ## Phase 1 acceptance checklist
+
+**Note:** unchecked items below are hardware/behavioral acceptance gates, not claims that their code is absent. The November 6 CI evidence above supersedes the historical statement that no tests were run against the October 26 changes. See [local validation](docs/PHASE1_LOCAL_VALIDATION.md).
+
 
 Check an item only after implementation and verification of the current code, not from a successful build or historical result.
 
