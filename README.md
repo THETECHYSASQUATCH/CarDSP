@@ -20,10 +20,26 @@
 | **Windows desktop** | Qt Quick 32-band EQ, raw 48 kHz stereo Float32 PCM playback, output selection, volume and bypass | Experimental |
 | **WindowsAudio** | Windows audio-device discovery and integration foundations | In development |
 | **Apple sources** | Swift DSP core and Apple application sources; historical Swift EQ has 31 bands | Packaging/validation pending |
-| **Linux / macOS desktop** | Shared DSP builds and tests | UI and hardware acceptance pending |
+| **Linux / macOS desktop** | Qt desktop source and CI build/test jobs | CI passed for tested Phase 1 revision; local GUI, audio and clean-install checks pending |
 | **Android / iOS app packages** | Native audio hosts and distributable app artifacts | Not yet implemented |
 
 ## Project status
+
+### What works in automated testing (verified October 31, 2026)
+
+- **Qt desktop builds/tests:** Windows, Ubuntu and macOS jobs all passed in [Phase 1 desktop CI run 41243662610](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/41243662610) on the Xcode feature branch; its changes were subsequently merged through PR #17.
+- **SwiftUI macOS executable:** the Xcode Phase 1 workflow passed on `development/phase_one` at `18b39e9` ([run 41243847211](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/41243847211)). The existing `Package.swift` opens in Xcode and defines `CarDSPApp` as a Swift Package executable, not a signed `.app`.
+- **Shared C++ DSP and Swift core:** automated jobs passed in the above runs. The Qt desktop CMake target includes decoder, controller, silent playback and QML numeric-editor tests; their successful CI execution does not replace real-device testing.
+- **Implemented in source:** 32-band Qt EQ and six filter types, response/spectrum view, presets, PCM playback controls, device enumeration, decoder/controller code, and a separate Swift DSP/SwiftUI app with a 31-band EQ. Treat audible behavior and feature parity as unverified.
+
+### Still being implemented or validated
+
+- Local Xcode and Linux build/run, Qt deployment from a clean directory, codec fixture coverage, physical playback, device reconnection, latency and audible EQ/bypass acceptance.
+- Conventional signed macOS `.app` and iOS/iPadOS application targets; Android APK/AAB host and packaging.
+- Phase 2 responsive navigation and numeric-editor UI: source is present on `development/phase_two`, but its latest checked desktop CI ([run 40952452981](https://github.com/THETECHYSASQUATCH/CarDSP/actions/runs/40952452981)) failed two QML navigation visibility assertions across desktop OSes. This does not change the Phase 1 green CI result.
+- Later-phase multichannel routing, advanced DSP integration and platform-specific release packaging.
+
+See [development status](DEVELOPMENT_STATUS.md) for dated evidence and [local acceptance checklist](docs/PHASE1_LOCAL_VALIDATION.md) for work that remains unchecked.
 
 **Phase 1 is not yet accepted or released as complete.** A successful compilation or CI run is not proof of audible playback, decoder support, clean-machine deployment, or mobile packaging.
 
@@ -35,8 +51,8 @@
 
 ### Current limitations
 
-- EQ edits are applied on the next Play; volume and bypass can be changed during playback.
-- WAV, MP3 and FLAC decoding, full playback lifecycle tests, output reconnection, and hardware acceptance remain to be verified or implemented.
+- The older next-Play EQ limitation is historical; live-EQ transition code now exists, but real-time audible acceptance remains pending.
+- WAV, MP3 and FLAC decoding code exists; format/fixture coverage, playback lifecycle edge cases, output reconnection, and hardware acceptance remain pending.
 - System-wide audio interception and unrestricted Apple Music sample processing are **not** supported.
 - Android APK/AAB and iOS IPA/simulator deliverables must not be claimed until real application hosts and packaging exist.
 
@@ -82,6 +98,14 @@ try {
 ```
 
 Use [Launch-CarDSP.ps1](Launch-CarDSP.ps1) for desktop launch instructions. For a fresh configuration, use [UI/Desktop/CMakeLists.txt](UI/Desktop/CMakeLists.txt) as the CMake source directory.
+
+### Linux: Qt desktop and shared DSP
+
+On the [Phase 1 local-build PR branch](https://github.com/THETECHYSASQUATCH/CarDSP/pull/18), run `bash scripts/build-phase1-linux.sh`; optionally set `CARDSP_STAGE_INSTALL=1` to stage installation. See [Linux build guide](docs/LINUX_PHASE1_BUILD.md). This new script has not yet been locally executed or verified.
+
+### macOS: Xcode / SwiftUI
+
+Open `Package.swift` in Xcode and select the `CarDSPApp` scheme for My Mac, or run `bash scripts/build-phase1-xcode.sh`. See [Xcode build guide](docs/XCODE_PHASE1_BUILD.md). CI passed, but local Mac launch and `.app` packaging are not verified.
 
 ## CI and releases
 
